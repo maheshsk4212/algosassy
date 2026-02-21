@@ -66,14 +66,48 @@ const navItems = [
   { path: '/settings', label: 'Settings', icon: Settings },
 ];
 
+import { Menu, X } from 'lucide-react';
+
 function App() {
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
+
+  const toggleMobileMenu = () => {
+    setIsMobileMenuOpen(!isMobileMenuOpen);
+  };
+
+  const closeMobileMenu = () => {
+    setIsMobileMenuOpen(false);
+  };
+
   return (
     <BrowserRouter>
       <div className="app-container">
-        <nav className="sidebar">
-          <div className="sidebar-brand">
+        {/* Mobile Header (Hidden on Desktop) */}
+        <div className="mobile-header">
+          <div className="mobile-brand">
             <span className="brand-dot"></span>
             <h2>Quant Cockpit</h2>
+          </div>
+          <button className="mobile-menu-btn" onClick={toggleMobileMenu}>
+            <Menu size={24} />
+          </button>
+        </div>
+
+        {/* Mobile Overlay */}
+        <div
+          className={`mobile-overlay ${isMobileMenuOpen ? 'open' : ''}`}
+          onClick={closeMobileMenu}
+        ></div>
+
+        <nav className={`sidebar ${isMobileMenuOpen ? 'open' : ''}`}>
+          <div className="sidebar-brand">
+            <div className="brand-title">
+              <span className="brand-dot"></span>
+              <h2>Quant Cockpit</h2>
+            </div>
+            <button className="mobile-close-btn" onClick={closeMobileMenu}>
+              <X size={24} />
+            </button>
           </div>
 
           <div className="nav-links">
@@ -82,6 +116,7 @@ function App() {
                 key={item.path}
                 to={item.path}
                 end={item.path === '/'}
+                onClick={closeMobileMenu}
                 className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}
               >
                 <item.icon size={18} />

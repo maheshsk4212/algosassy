@@ -228,53 +228,160 @@
   max-width: 1400px;
 }
 
+/* ── Mobile Layout Specifics ────────────────────────────────── */
+.mobile-header {
+  display: none;
+}
+
+.mobile-overlay {
+  display: none;
+}
+
 /* ── Responsive ─────────────────────────────────────────────── */
 @media (max-width: 768px) {
   .app-container {
     flex-direction: column;
   }
 
-  .sidebar {
-    width: 100%;
-    height: auto;
-    border-right: none;
-    border-bottom: 1px solid var(--glass-border);
-    padding: var(--sp-4);
-    flex-direction: row;
+  .mobile-header {
+    display: flex;
+    justify-content: space-between;
     align-items: center;
+    padding: var(--sp-4) var(--sp-5);
+    background: var(--glass-1);
+    border-bottom: 1px solid var(--glass-border);
+    backdrop-filter: var(--blur-glass);
+    -webkit-backdrop-filter: var(--blur-glass);
+    z-index: 30;
+    position: sticky;
+    top: 0;
   }
 
-  .sidebar::before {
-    display: none;
+  .mobile-brand {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-3);
+  }
+
+  .mobile-brand h2 {
+    font-family: var(--font-display);
+    font-size: 1.15rem;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    background: linear-gradient(135deg, var(--accent-cyan), var(--accent-violet));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .mobile-brand .brand-dot {
+    width: 8px;
+    height: 8px;
+    background: var(--accent-cyan);
+    border-radius: 50%;
+    box-shadow: 0 0 8px rgba(34, 211, 238, 0.5);
+  }
+
+  .mobile-menu-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--sp-2);
+    cursor: pointer;
+  }
+
+  .mobile-overlay.open {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(2px);
+    z-index: 35;
+    animation: fadeIn 0.3s ease-out forwards;
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+    }
+
+    to {
+      opacity: 1;
+    }
+  }
+
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 260px;
+    height: 100vh;
+    transform: translateX(-100%);
+    transition: transform 0.3s ease-in-out;
+    z-index: 40;
+    background: linear-gradient(180deg, rgba(10, 15, 25, 0.95), rgba(6, 8, 13, 0.98));
+    border-right: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  .sidebar.open {
+    transform: translateX(0);
   }
 
   .sidebar-brand {
-    margin-bottom: 0;
-    margin-right: var(--sp-4);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-right: var(--sp-2);
+  }
+
+  .brand-title {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-3);
+  }
+
+  .mobile-close-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--sp-2);
+    cursor: pointer;
+    border-radius: var(--radius-sm);
+  }
+
+  .mobile-close-btn:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-primary);
   }
 
   .nav-links {
-    flex-direction: row;
-    overflow-x: auto;
-    gap: var(--sp-1);
+    flex-direction: column;
+    overflow-x: hidden;
   }
 
   .nav-item {
-    white-space: nowrap;
-    font-size: 0.78rem;
-    padding: var(--sp-2) var(--sp-3);
+    white-space: normal;
+    font-size: 0.9rem;
+    padding: var(--sp-3) var(--sp-4);
   }
 
   .nav-item.active::before {
-    display: none;
+    display: block;
   }
 
   .sidebar-footer {
-    display: none;
+    display: block;
   }
 
   .global-risk-banner {
     padding: var(--sp-3) var(--sp-4);
+    top: 0;
   }
 
   .banner-stats {

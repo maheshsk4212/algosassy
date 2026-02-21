@@ -23,30 +23,63 @@ class BrokerReconciliationService:
         """Called by APScheduler every ~15 seconds."""
         logger.debug("Starting Broker Reconciliation Cycle...")
         
-        # 1. Fetch live proxy of current broker positions
-        # (Mocked logic for Phase 4 since API credentials missing: we assume matched)
-        # try:
-        #    broker_positions = await kite_service.get_positions()
-        # except Exception as e:
-        #    logger.error("Reconciliation failed fetching from broker")
-        #    return
-        
-        # For this demonstration without active creds, we will log the routine.
-        # In a fully connected state, we compare `broker_positions` against 
-        # `mtm_engine._synthetic_positions`.
-        
-        # 2. Phantom Position Logic pseudo-code:
-        # for pos in broker_positions:
-        #    if pos.symbol not in mtm_engine._synthetic_positions:
-        #        # Immediate Kill Switch - We have an orphaned position
-        #        event_bus.publish(EventType.EMERGENCY_LIQUIDATE, {"reason": f"Phantom position detected: {pos.symbol}"})
+        try:
+            from app.services.kite_service import get_kite_service
+            from app.services.mtm_engine import mtm_engine
+            kite = get_kite_service()
             
-        # 3. Size Mismatch Grace Period Logic pseudo-code:
-        # if local_size != broker_size:
-        #     if symbol not in self._mismatch_watch:
-        #          self._mismatch_watch[symbol] = current_time
-        #     else:
-        #          if current_time - self._mismatch_watch[symbol] > self._grace_period_seconds:
-        #              event_bus.publish(EventType.EMERGENCY_LIQUIDATE, {"reason": "Persistent position size mismatch"})
+            # 1. Guard: skip if no access token (not yet authenticated)
+            if not kite._kite.access_token:
+                logger.debug("Reconciliation skipped: no active access token.")
+                return
+            
+            # 2. Fetch live positions from the broker
+            broker_data = await kite.get_positions()
+            broker_positions = {
+                p['instrument_token']: p['quantity']
+                for p in broker_data.get('net', [])
+                if p.get('instrument_token')
+            }
+            
+            # 3. Snapshot synthetic positions
+            local_positions = dict(mtm_engine._synthetic_positions)
+            
+            current_time = time.time()
+            
+            # 4. Phantom Position Check - positions existing on broker NOT in our system
+            for token, broker_qty in broker_positions.items():
+                if broker_qty != 0 and token not in local_positions:
+                    logger.critical(f"🚨 PHANTOM POSITION DETECTED: Token {token} has {broker_qty} shares at broker but nothing locally!")
+                    event_bus.publish(EventType.EMERGENCY_LIQUIDATE, {
+                        "reason": f"Phantom position detected for token {token}",
+                        "symbol": token
+                    })
+                    return  # Halt reconciliation after emergency signal
+            
+            # 5. Size Mismatch Grace Period Check
+            for token, local_info in local_positions.items():
+                local_qty = local_info.get('position_size', 0)
+                broker_qty = broker_positions.get(token, 0)
+                
+                if local_qty != broker_qty:
+                    if token not in self._mismatch_watch:
+                        self._mismatch_watch[token] = current_time
+                        logger.warning(f"⚠️  Size mismatch on token {token}: Local={local_qty}, Broker={broker_qty}. Grace period started.")
+                    elif current_time - self._mismatch_watch[token] > self._grace_period_seconds:
+                        logger.critical(f"🚨 PERSISTENT MISMATCH on {token} for > {self._grace_period_seconds}s. Triggering emergency!")
+                        event_bus.publish(EventType.EMERGENCY_LIQUIDATE, {
+                            "reason": f"Persistent size mismatch on token {token}",
+                            "symbol": token
+                        })
+                else:
+                    # Clear grace period if mismatch resolved
+                    self._mismatch_watch.pop(token, None)
+            
+            logger.debug(f"Reconciliation OK. Broker: {len(broker_positions)} positions. Local: {len(local_positions)} synthetic.")
+            
+        except RuntimeError:
+            logger.debug("Reconciliation skipped: KiteService not initialized.")
+        except Exception as e:
+            logger.error(f"Reconciliation cycle error: {e}")
 
 broker_reconciliation_service = BrokerReconciliationService()

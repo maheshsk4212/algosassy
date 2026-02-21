@@ -16,6 +16,8 @@ class DriftMonitor:
         
         # { strategy_name: deque([pnl, pnl, ...]) }
         self._strategy_pnls = {}
+        # { strategy_name: "HEALTHY" | "DECAYED" }
+        self._strategy_states = {}
         
         # Baseline Expectations (Will be loaded from Phase 9 DB config)
         self.baselines = {
@@ -50,10 +52,15 @@ class DriftMonitor:
         
         if current_mean < critical_floor:
             logger.critical(f"📉 DRIFT DETECTED: {strategy_name} Expectancy ({current_mean:.2f}) fell below critical floor ({critical_floor:.2f})")
+            self._strategy_states[strategy_name] = "DECAYED"
             event_bus.publish(EventType.EMERGENCY_LIQUIDATE, {
                 "source": "DriftMonitor",
                 "reason": f"Statistical Edge Decay exactly detected on {strategy_name}",
                 "symbol": "ALL"
             })
+            
+    def get_drift_state(self, strategy_name: str) -> str:
+        """Returns HEALTHY or DECAYED so the Risk Engine can block new entries."""
+        return self._strategy_states.get(strategy_name, "HEALTHY")
             
 drift_monitor = DriftMonitor()

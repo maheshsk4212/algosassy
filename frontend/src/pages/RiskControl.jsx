@@ -15,9 +15,35 @@ const RiskControl = () => {
         monthlyLossCap: 5.0,
     });
 
+    const [liveGovernance, setLiveGovernance] = useState({
+        baseRiskPercent: 1.0,
+        drawdownPenalty: 1.0,
+        maxDrawdownPercent: 5.0
+    });
+
     const [pendingParams, setPendingParams] = useState(null);
     const [isConfirming, setIsConfirming] = useState(false);
     const [countdown, setCountdown] = useState(0);
+
+    useEffect(() => {
+        // Fetch actual system state on load
+        fetch('http://localhost:8000/api/v1/dashboard/risk-params')
+            .then(res => res.json())
+            .then(data => {
+                setLiveGovernance({
+                    baseRiskPercent: data.base_risk_percent,
+                    drawdownPenalty: data.drawdown_penalty_multiplier,
+                    maxDrawdownPercent: data.max_drawdown_percent
+                });
+                // Initialize default form with what backend is actually running
+                setParams({
+                    baseRisk: data.base_risk_percent,
+                    maxExposure: 2.0, // Future: fetch from backend
+                    monthlyLossCap: data.max_drawdown_percent,
+                });
+            })
+            .catch(console.error);
+    }, []);
 
     const handleApply = () => {
         setIsConfirming(true);
@@ -123,19 +149,29 @@ const RiskControl = () => {
                     <p className="panel-desc">Calculated dynamically by the Risk Engine. Not manually overriding.</p>
 
                     <div className="read-only-list">
-                        {displayParameters.map((item, idx) => (
-                            <div key={idx} className={`read-only-item ${item.status}`}>
-                                <div className="item-main">
-                                    <span className="item-label">{item.label}</span>
-                                    <span className="item-value">{item.value}</span>
-                                </div>
-                                {item.note && (
-                                    <div className="item-note">
-                                        <Info size={14} /> {item.note}
-                                    </div>
-                                )}
+                        <div className="read-only-item nominal">
+                            <div className="item-main">
+                                <span className="item-label">Base Volatility Risk</span>
+                                <span className="item-value">{liveGovernance.baseRiskPercent.toFixed(2)}%</span>
                             </div>
-                        ))}
+                        </div>
+                        <div className={`read-only-item ${liveGovernance.drawdownPenalty < 1.0 ? 'warning' : 'nominal'}`}>
+                            <div className="item-main">
+                                <span className="item-label">Drawdown Penalty Multiplier</span>
+                                <span className="item-value">{liveGovernance.drawdownPenalty.toFixed(2)}x</span>
+                            </div>
+                            {liveGovernance.drawdownPenalty < 1.0 && (
+                                <div className="item-note">
+                                    <Info size={14} /> Risk automatically reduced due to local drawdown
+                                </div>
+                            )}
+                        </div>
+                        <div className="read-only-item nominal">
+                            <div className="item-main">
+                                <span className="item-label">Max Allowed Drawdown</span>
+                                <span className="item-value">{liveGovernance.maxDrawdownPercent.toFixed(1)}%</span>
+                            </div>
+                        </div>
                     </div>
 
                     <div className="governance-rules-summary">

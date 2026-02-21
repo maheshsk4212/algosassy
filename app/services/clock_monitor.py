@@ -1,7 +1,7 @@
 import logging
-import time
 from typing import Optional
 
+from app.core.time_provider import time_provider
 from app.core.event_bus import event_bus, EventType
 
 logger = logging.getLogger(__name__)
@@ -20,7 +20,7 @@ class ClockMonitor:
         if not tick_timestamp_ms:
             return
             
-        local_time_ms = int(time.time() * 1000)
+        local_time_ms = time_provider.time_ms()
         # Exchange timestamp might be slightly behind network transit time, 
         # but if we are *ahead* by a huge margin, or *behind* by a huge margin, we have a problem.
         drift_ms = abs(local_time_ms - tick_timestamp_ms)

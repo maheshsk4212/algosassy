@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from app.state_manager import state_manager, SystemState
+from app.core.event_bus import event_bus, EventType
 
 router = APIRouter(prefix="/protected", tags=["Protected Actions"])
 
@@ -21,3 +22,15 @@ async def protected_health():
 async def status_check():
     """Unprotected route to check the current system state."""
     return {"state": state_manager.get_state().name}
+
+@router.post("/kill-switch", dependencies=[Depends(require_ready_state)])
+async def trigger_kill_switch():
+    """
+    Manual emergency trigger from the UI Sidebar.
+    Fires the global liquidation event.
+    """
+    event_bus.publish(EventType.EMERGENCY_LIQUIDATE, {
+        "reason": "Manual UI Intervention",
+        "source": "User-Admin"
+    })
+    return {"status": "success", "message": "Emergency Liquidation Triggered"}

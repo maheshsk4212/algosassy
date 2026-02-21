@@ -122,12 +122,77 @@
 .sidebar-footer {
   margin-top: auto;
   padding-top: var(--sp-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
 }
 
 .sidebar-footer .btn {
   width: 100%;
   justify-content: center;
 }
+
+/* ── Kite Session Status ──────────────────────────────────────── */
+.kite-session-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 6px 10px;
+  border-radius: 8px;
+  letter-spacing: 0.03em;
+}
+
+.kite-session-connected {
+  color: var(--color-positive, #22c55e);
+  background: rgba(34, 197, 94, 0.08);
+  border: 1px solid rgba(34, 197, 94, 0.2);
+}
+
+.kite-session-checking {
+  color: var(--text-muted);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--glass-border);
+  animation: pulse-opacity 2s ease infinite;
+}
+
+@keyframes pulse-opacity {
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.45;
+  }
+}
+
+.kite-login-btn {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  width: 100%;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-decoration: none;
+  color: var(--accent-cyan);
+  background: rgba(34, 211, 238, 0.08);
+  border: 1px solid rgba(34, 211, 238, 0.25);
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.kite-login-btn:hover {
+  background: rgba(34, 211, 238, 0.16);
+  border-color: rgba(34, 211, 238, 0.5);
+  box-shadow: 0 0 12px rgba(34, 211, 238, 0.15);
+}
+
 
 /* ── Main Content ───────────────────────────────────────────── */
 .main-content {
@@ -144,14 +209,26 @@
   position: sticky;
   top: 0;
   z-index: 20;
-  padding: var(--sp-3) var(--sp-8);
+  padding: 0 var(--sp-8);
+  height: 52px;
   display: flex;
-  justify-content: space-between;
   align-items: center;
   border-bottom: 1px solid var(--glass-border);
-  background: rgba(6, 8, 13, 0.85);
+  background: var(--shell-banner-bg);
   backdrop-filter: var(--blur-glass);
   -webkit-backdrop-filter: var(--blur-glass);
+  transition: box-shadow 0.4s ease;
+}
+
+/* Risk-state glow on banner itself — no flash, smooth fade */
+.global-risk-banner.risk-banner-elevated {
+  box-shadow: var(--risk-glow-elevated);
+  border-bottom-color: rgba(251, 191, 36, 0.15);
+}
+
+.global-risk-banner.risk-banner-high {
+  box-shadow: var(--risk-glow-high);
+  border-bottom-color: rgba(239, 68, 68, 0.2);
 }
 
 .global-risk-banner::after {
@@ -161,8 +238,62 @@
   left: 0;
   right: 0;
   height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(34, 211, 238, 0.08), rgba(167, 139, 250, 0.06), transparent);
+  background: linear-gradient(90deg, transparent, rgba(31, 200, 224, 0.08), rgba(167, 139, 250, 0.06), transparent);
   pointer-events: none;
+}
+
+.banner-inner {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-8);
+  width: 100%;
+}
+
+/* PRIMARY — Global Risk + Kill Switch: bold, prominent */
+.banner-primary {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-5);
+  flex-shrink: 0;
+}
+
+.banner-divider {
+  width: 1px;
+  height: 28px;
+  background: var(--glass-border);
+  flex-shrink: 0;
+}
+
+.primary-stat {
+  gap: 3px;
+}
+
+.stat-label-primary {
+  font-size: 0.6rem;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-weight: 700;
+}
+
+.stat-value-primary {
+  font-family: var(--font-mono);
+  font-size: 1rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+/* SECONDARY — Operational states: muted, smaller */
+.banner-secondary {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-6);
+  padding-left: var(--sp-8);
+  border-left: 1px solid var(--glass-border);
+}
+
+.stat-muted {
+  opacity: 0.65;
 }
 
 .banner-stats {
@@ -187,8 +318,31 @@
 .stat-value {
   font-family: var(--font-mono);
   font-weight: 700;
-  font-size: 0.9rem;
+  font-size: 0.95rem;
   color: var(--text-heading);
+  letter-spacing: -0.02em;
+}
+
+/* TIMESTAMP — rightmost, governance audit */
+.banner-timestamp {
+  margin-left: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  align-items: flex-end;
+}
+
+.ts-label {
+  font-size: 0.55rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.ts-value {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--text-muted);
 }
 
 .status-indicator {
@@ -220,12 +374,33 @@
 
 /* ── Content Wrapper ────────────────────────────────────────── */
 .content-wrapper {
-  padding: var(--sp-8);
+  padding: var(--sp-6) var(--sp-8);
   display: flex;
   flex-direction: column;
   gap: var(--sp-6);
   flex: 1;
+  width: 100%;
   max-width: 1400px;
+  box-sizing: border-box;
+}
+
+.page-container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-6);
+  animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* ── Mobile Layout Specifics ────────────────────────────────── */
@@ -234,6 +409,14 @@
 }
 
 .mobile-overlay {
+  display: none;
+}
+
+.mobile-close-btn {
+  display: none;
+}
+
+.mobile-bottom-nav {
   display: none;
 }
 
@@ -295,7 +478,7 @@
     bottom: 0;
     left: 0;
     width: 100%;
-    background: rgba(6, 8, 13, 0.95);
+    background: var(--shell-mobile-nav-bg);
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
     border-top: 1px solid var(--glass-border);
@@ -376,7 +559,7 @@
     transform: translateX(-100%);
     transition: transform 0.3s ease-in-out;
     z-index: 40;
-    background: linear-gradient(180deg, rgba(10, 15, 25, 0.95), rgba(6, 8, 13, 0.98));
+    background: var(--shell-sidebar-mobile-bg);
     border-right: 1px solid rgba(255, 255, 255, 0.08);
   }
 
@@ -398,10 +581,11 @@
   }
 
   .mobile-close-btn {
+    display: flex;
+    /* Override desktop hidden state */
     background: transparent;
     border: none;
     color: var(--text-muted);
-    display: flex;
     align-items: center;
     justify-content: center;
     padding: var(--sp-2);
@@ -434,16 +618,34 @@
   }
 
   .global-risk-banner {
-    padding: var(--sp-3) var(--sp-4);
+    padding: 0 var(--sp-4);
+    height: 48px;
     top: 0;
   }
 
-  .banner-stats {
-    gap: var(--sp-5);
-    flex-wrap: wrap;
+  .banner-inner {
+    gap: var(--sp-4);
+    overflow-x: auto;
+  }
+
+  /* On mobile: hide secondary tier to keep it clean */
+  .banner-secondary {
+    display: none;
+  }
+
+  .banner-timestamp {
+    display: none;
+  }
+
+  .banner-primary {
+    gap: var(--sp-4);
+  }
+
+  .stat-value-primary {
+    font-size: 0.9rem;
   }
 
   .content-wrapper {
-    padding: var(--sp-4);
+    padding: var(--sp-4) var(--sp-4);
   }
 }

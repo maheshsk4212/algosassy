@@ -6,7 +6,8 @@
     display: flex;
     flex-direction: column;
     gap: var(--sp-5);
-    height: calc(100vh - 140px);
+    /* Banner: 52px + content-wrapper top-padding: var(--sp-6)=24px + safety: 4px = 80px */
+    height: calc(100vh - 80px);
 }
 
 .execution-header {
@@ -62,8 +63,8 @@
 
 .order-header {
     display: grid;
-    grid-template-columns: 1.2fr 1fr 0.7fr 1fr 1fr 0.8fr;
-    gap: var(--sp-4);
+    grid-template-columns: 1.4fr 1fr 0.7fr 1fr 1fr 0.8fr 0.8fr 1fr 0.9fr;
+    gap: var(--sp-3);
     padding: var(--sp-3) var(--sp-5);
     background: var(--bg-inset);
     border-bottom: 1px solid var(--glass-border);
@@ -87,8 +88,8 @@
 
 .order-row {
     display: grid;
-    grid-template-columns: 1.2fr 1fr 0.7fr 1fr 1fr 0.8fr;
-    gap: var(--sp-4);
+    grid-template-columns: 1.4fr 1fr 0.7fr 1fr 1fr 0.8fr 0.8fr 1fr 0.9fr;
+    gap: var(--sp-3);
     padding: var(--sp-3) var(--sp-5);
     border-bottom: 1px solid rgba(255, 255, 255, 0.02);
     font-family: var(--font-mono);
@@ -142,4 +143,71 @@
 
 .spin-icon {
     animation: spin 1s linear infinite;
+}
+
+/* Strategy column — truncate if long name */
+.col-strategy {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* ── Execution Quality Summary Strip ───────────────────────── */
+.exec-summary-strip {
+    display: flex;
+    gap: var(--sp-6);
+    padding: var(--sp-3) var(--sp-5);
+    background: var(--bg-inset);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-md);
+    flex-shrink: 0;
+}
+
+.exec-summary-item {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.exec-summary-label {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.6rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+    font-weight: 700;
+}
+
+.exec-summary-value {
+    font-family: var(--font-mono);
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--text-heading);
+}
+
+@media (max-width: 768px) {
+    .exec-summary-strip {
+        gap: var(--sp-4);
+        overflow-x: auto;
+    }
+
+    /* On small screens, collapse table to fewer columns */
+    .order-header,
+    .order-row {
+        grid-template-columns: 1.4fr 1fr 0.7fr 1fr 1fr 0.9fr;
+    }
+
+    /* Hide latency/slippage/strategy on mobile to keep clean */
+    .order-header span:nth-child(6),
+    .order-header span:nth-child(7),
+    .order-header span:nth-child(8),
+    .order-row>span:nth-child(6),
+    .order-row>span:nth-child(7),
+    .order-row>span:nth-child(8) {
+        display: none;
+    }
 }

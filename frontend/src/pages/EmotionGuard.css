@@ -1,0 +1,166 @@
+/* ═══════════════════════════════════════════════════════════════
+   EMOTION GUARD INTERCEPT
+   ═══════════════════════════════════════════════════════════════ */
+
+.emotion-guard-page {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-6);
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.emotion-header {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-2);
+    padding-bottom: var(--sp-4);
+    border-bottom: 0.5px solid rgba(239, 68, 68, 0.2);
+}
+
+.emotion-header h2 {
+    color: var(--color-alert);
+}
+
+.intercept-panel {
+    background: var(--color-alert-glow);
+    border-color: rgba(239, 68, 68, 0.3);
+    padding: var(--sp-6);
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-4);
+}
+
+.intercept-panel h3 {
+    color: var(--color-alert);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    display: flex;
+    align-items: center;
+    gap: var(--sp-3);
+    margin-bottom: var(--sp-2);
+}
+
+.intercept-copy {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-3);
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    line-height: 1.6;
+}
+
+.intercept-copy strong {
+    color: var(--text-heading);
+}
+
+/* ── Bypass Control Panel ────────────────────────────────── */
+.bypass-panel {
+    padding: var(--sp-8);
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-6);
+}
+
+.bypass-panel h3 {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+}
+
+.reason-input-group {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-3);
+}
+
+.reason-field {
+    background: var(--bg-inset);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-md);
+    padding: var(--sp-3) var(--sp-4);
+    color: var(--text-primary);
+    font-family: var(--font-mono);
+    font-size: 0.9rem;
+    min-height: 120px;
+    resize: none;
+    outline: none;
+    transition: var(--transition-base);
+}
+
+.reason-field:focus {
+    border-color: rgba(239, 68, 68, 0.4);
+    background: rgba(0, 0, 0, 0.4);
+}
+
+.bypass-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--sp-4);
+}
+
+/* ── Cooldown State ───────────────────────────────────────── */
+.cooldown-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--sp-4);
+    padding: var(--sp-10);
+}
+
+.cooldown-timer {
+    font-family: var(--font-mono);
+    font-size: 4rem;
+    font-weight: 700;
+    color: var(--color-warning);
+    text-shadow: 0 0 30px var(--color-warning-glow);
+}
+
+.cooldown-label {
+    font-size: 0.95rem;
+    color: var(--text-secondary);
+    max-width: 320px;
+    text-align: center;
+}
+
+/* ── Unlocked State ────────────────────────────────────────── */
+.unlocked-alert {
+    background: var(--color-alert-glow);
+    border: 1px solid var(--color-alert);
+    border-radius: var(--radius-lg);
+    padding: var(--sp-10);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+}
+
+.unlocked-title {
+    color: var(--color-alert);
+    font-weight: 800;
+    font-size: 1.1rem;
+    letter-spacing: 0.2em;
+    margin: var(--sp-4) 0 var(--sp-2);
+}
+
+.unlocked-desc {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    max-width: 400px;
+}
+
+.critical-btn {
+    background: var(--color-alert) !important;
+    border-color: var(--color-alert) !important;
+    color: white !important;
+    font-weight: 800;
+    box-shadow: 0 0 20px rgba(239, 68, 68, 0.3);
+}
+
+.critical-btn:hover {
+    box-shadow: 0 0 30px rgba(239, 68, 68, 0.5);
+    transform: translateY(-2px);
+}

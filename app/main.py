@@ -28,7 +28,7 @@ from app.core.metrics import (
 )
 from app.core.logging_config import setup_async_logging
 
-from app.routers import auth, protected, health
+from app.routers import auth, protected, health, dashboard, governance, audit
 
 # Ensure tables are created (useful for dev/sqlite without migrations)
 Base.metadata.create_all(bind=engine)
@@ -56,8 +56,8 @@ def update_telemetry_gauges():
     from app.services.capital_registry import capital_registry
     from app.services.mtm_engine import mtm_engine
     
-    TICK_QUEUE_DEPTH.set(tick_queue_manager.queue.qsize())
-    STRATEGY_QUEUE_DEPTH.set(strategy_worker.candle_queue.qsize())
+    TICK_QUEUE_DEPTH.set(tick_queue_manager.get_queue_size())
+    STRATEGY_QUEUE_DEPTH.set(strategy_worker.event_queue.qsize())
     AVAILABLE_CAPITAL.set(capital_registry.get_available_capital())
     UNREALIZED_PNL.set(mtm_engine.get_realtime_pnl())
     SYSTEM_STATE_GAUGE.set(state_manager.get_state().value)
@@ -84,6 +84,23 @@ async def lifespan(app: FastAPI):
         db.close()
         
     logger.info(f"Startup complete. Current system state: {state_manager.get_state().name}")
+    
+    # If already authenticated, seed the capital registry with live margin balance
+    if state_manager.get_state() == SystemState.READY:
+        try:
+            from app.services.kite_service import get_kite_service
+            from app.services.capital_registry import capital_registry
+            from app.services.event_logger import log_event
+            kite = get_kite_service()
+            margins = await kite.get_margins()
+            equity_available = margins.get('equity', {}).get('available', {}).get('live_balance', 0.0)
+            if equity_available > 0:
+                capital_registry.total_capital = equity_available
+                governance_guard.peak_equity = equity_available
+                logger.info(f"Capital registry seeded from Kite margins on startup: ₹{equity_available:,.2f}")
+                log_event("system", f"Capital synced from Zerodha at startup: ₹{equity_available:,.2f}")
+        except Exception as e:
+            logger.warning(f"Startup margin sync failed: {e}. Trading will use default capital.")
 
     # Phase 2 component startup
     logger.info("Starting Tick Consumer Worker thread...")
@@ -131,9 +148,21 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Algo-Sassy API", lifespan=lifespan)
 
+from fastapi.middleware.cors import CORSMiddleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173", "http://localhost:3000"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 app.include_router(auth.router, prefix="/api/v1")
 app.include_router(protected.router, prefix="/api/v1")
 app.include_router(health.router, prefix="/api/v1")
+app.include_router(dashboard.router, prefix="/api/v1")
+app.include_router(governance.router, prefix="/api/v1")
+app.include_router(audit.router, prefix="/api/v1")
 app.include_router(metrics_router)  # Phase 6 Metrics exposed on /metrics
 
 @app.get("/")

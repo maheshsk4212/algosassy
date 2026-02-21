@@ -1,8 +1,8 @@
 import logging
 import asyncio
-import time
 from datetime import datetime, timedelta
 import threading
+from app.core.time_provider import time_provider
 
 logging.basicConfig(level=logging.INFO)
 
@@ -37,15 +37,15 @@ async def test_order_cache_rate_limits():
     original_get_orders = shared_order_cache.get_orders
     
     async def get_orders_override(force_refresh=False):
-        now = time.time()
+        now = time_provider.time()
         if not force_refresh and (now - shared_order_cache._last_fetch_time) < shared_order_cache.cache_duration:
             return shared_order_cache._last_orders
         with shared_order_cache._lock:
-            if not force_refresh and (time.time() - shared_order_cache._last_fetch_time) < shared_order_cache.cache_duration:
+            if not force_refresh and (time_provider.time() - shared_order_cache._last_fetch_time) < shared_order_cache.cache_duration:
                 return shared_order_cache._last_orders
             await mock_get_orders() # Simulate network hit
             shared_order_cache._last_orders = []
-            shared_order_cache._last_fetch_time = time.time()
+            shared_order_cache._last_fetch_time = time_provider.time()
             return shared_order_cache._last_orders
 
     shared_order_cache.get_orders = get_orders_override
@@ -74,7 +74,7 @@ async def test_idempotency_sniff():
         "order_id": "SNIFFED_MOCK_ID_123"
     }]
     # Trick cache into thinking it's fresh
-    shared_order_cache._last_fetch_time = time.time() 
+    shared_order_cache._last_fetch_time = time_provider.time() 
     
     intent = TradeIntent(
         strategy_name="sniff_test",
@@ -85,7 +85,8 @@ async def test_idempotency_sniff():
         target=110.0
     )
     
-    duplicate_id = await idempotency_manager.sniff_for_duplicate(intent)
+    # In Phase 8, intent no longer carries size. The execution engine assigns it.
+    duplicate_id = await idempotency_manager.sniff_for_duplicate(intent, assigned_size=50)
     print(f"Found Duplicate ID: {duplicate_id}")
     assert duplicate_id == "SNIFFED_MOCK_ID_123", "Failed to detect trailing window clock drift duplicate."
 

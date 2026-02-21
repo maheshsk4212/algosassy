@@ -38,6 +38,10 @@ class RiskEngine:
         if emotion_block:
             return self._reject(intent, emotion_block)
 
+        from app.services.drift_monitor import drift_monitor
+        if drift_monitor.get_drift_state(intent.strategy_name) == "DECAYED":
+             return self._reject(intent, f"Edge Decay detected for {intent.strategy_name}. Strategy locked by Drift Monitor.")
+
         # 4. Drawdown Check & Personal Risk Cap (O(1) Lockless Read)
         current_equity = capital_registry.total_capital + mtm_engine.get_realtime_pnl()
         
@@ -49,11 +53,15 @@ class RiskEngine:
         if drawdown_percent >= self.max_drawdown_percent:
             return self._reject(intent, f"Max drawdown exceeded. Current: {drawdown_percent:.2f}%")
             
-        # 5. Volatility Adaptive Position Sizing (Phase 8 Core)
-        # Size = (Capital * Base_Risk) / (ATR * VolatilityMultiplier)
+        # 5. Volatility Adaptive Position Sizing & Asymmetric Compounding (Phase 8 Core)
+        # Size = (Capital * Base_Risk * DrawdownPenalty) / (ATR * VolMultiplier)
         atr_value = regime_service.get_atr(intent.symbol)
         vol_multiplier = regime_service.get_volatility_multiplier(intent.symbol)
-        base_risk_amount = current_equity * regime_service.get_base_risk_percent()
+        
+        # Pull Governance multiplier (e.g. 0.8x if in 5% drawdown)
+        drawdown_penalty = governance_guard.get_drawdown_penalty_multiplier(current_equity)
+        
+        base_risk_amount = current_equity * regime_service.get_base_risk_percent() * drawdown_penalty
         
         # Raw unit size 
         if atr_value <= 0:

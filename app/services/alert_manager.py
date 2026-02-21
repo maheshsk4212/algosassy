@@ -1,10 +1,10 @@
 import logging
-import time
 import asyncio
 import httpx
 from typing import Dict, List
 from collections import deque
 
+from app.core.time_provider import time_provider
 from app.core.event_bus import event_bus, EventType
 
 logger = logging.getLogger(__name__)
@@ -41,7 +41,7 @@ class AlertManager:
         asyncio.create_task(self._process_and_dispatch(fingerprint, data))
 
     async def _process_and_dispatch(self, fingerprint: str, data: dict):
-        now = time.time()
+        now = time_provider.time()
         
         # 1. Cascade Protection (Flood Control)
         if now < self._muted_until:

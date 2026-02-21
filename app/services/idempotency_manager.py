@@ -2,6 +2,8 @@ import logging
 from datetime import datetime, timezone, timedelta
 from typing import Optional
 
+from app.core.time_provider import time_provider
+
 try:
     import zoneinfo
     IST = zoneinfo.ZoneInfo("Asia/Kolkata")
@@ -27,14 +29,14 @@ class IdempotencyManager:
     def __init__(self, sniff_window_seconds: int = 15):
         self.sniff_window_seconds = sniff_window_seconds
 
-    async def sniff_for_duplicate(self, intent: TradeIntent) -> Optional[str]:
+    async def sniff_for_duplicate(self, intent: TradeIntent, assigned_size: int) -> Optional[str]:
         """
         Returns an order_id if it finds a match, preventing execution.
         Returns None if safe to place order.
         """
         orders = await shared_order_cache.get_orders()
         
-        now_ist = datetime.now(IST)
+        now_ist = time_provider.utcnow().astimezone(IST)
         cutoff_time = now_ist - timedelta(seconds=self.sniff_window_seconds)
         
         matches = []
@@ -42,7 +44,7 @@ class IdempotencyManager:
             # Fast filters
             if str(o.get('instrument_token')) != str(intent.symbol): continue
             if o.get('transaction_type') != intent.direction.value: continue
-            if int(o.get('quantity', 0)) != intent.position_size: continue
+            if int(o.get('quantity', 0)) != assigned_size: continue
             
             # Status filter - terminal statuses (REJECTED, CANCELLED) are safe to retry.
             # We only want to avoid duplicating orders that are OPEN, VALIDATION PENDING, COMPLETE

@@ -48,7 +48,8 @@ class MTMEngine:
             if current_price is None:
                 continue # Skip if no live price yet
                 
-            # LONG ONLY assumption for Phase 4 architecture currently
+            # Universal PnL formula: (MarketPrice - EntryPrice) * Quantity
+            # If Qty is negative (Short), PnL is positive if MarketPrice < EntryPrice.
             diff = current_price - pos['avg_price']
             pnl += (diff * pos['position_size'])
             

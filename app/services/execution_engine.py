@@ -18,6 +18,26 @@ class ExecutionEngine:
     """
     def __init__(self, max_retries: int = 3):
         self.max_retries = max_retries
+        self._broker = kite_service # Default to Live interface
+        
+        # Subscribe to emergency liquidation events
+        event_bus.subscribe(EventType.EMERGENCY_LIQUIDATE, self._handle_emergency_liquidation)
+
+    def _handle_emergency_liquidation(self, data: dict):
+        """
+        Catastrophic exit. Flattens all positions via the broker interface.
+        Triggered by Governance Guard or manual Emergency Guard button.
+        """
+        reason = data.get("reason", "Unknown Emergency")
+        logger.critical(f"🛑 EXECUTION ENGINE: LIQUIDATING ALL POSITIONS. Reason: {reason}")
+        
+        # We fire and forget this as it might take time, but it's a critical block
+        asyncio.create_task(self._broker.exit_all_positions())
+
+    def set_broker(self, broker_instance):
+        """Allows injecting the mocked backtester broker."""
+        self._broker = broker_instance
+        logger.info(f"Execution Engine broker injected: {broker_instance.__class__.__name__}")
 
     async def execute_decision(self, decision: RiskDecision):
         """Main async entrypoint. Validates decision payload and triggers locked execution loop."""
@@ -72,13 +92,11 @@ class ExecutionEngine:
         """
         for attempt in range(1, self.max_retries + 1):
             try:
-                # ----------------------------------------------------
-                # MOCKED API CALL:
-                # order_id = await kite_service.place_order( ... )
-                # ----------------------------------------------------
+                # INTERFACE CALL (Kite Service or Backtest Broker)
+                success = await self._broker.place_order(intent, assigned_position_size)
                 
-                # Mock successful 1st attempt
-                return True 
+                if success:
+                    return True 
                 
             except Exception as e:
                 logger.warning(f"Broker Order Attempt {attempt} failed: {e}")

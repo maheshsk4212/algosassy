@@ -1,8 +1,9 @@
 import logging
 import threading
 import uuid
-import time
 from typing import Dict, Tuple
+
+from app.core.time_provider import time_provider
 
 from app.models.trade_intent import TradeIntent
 from app.core.event_bus import event_bus, EventType
@@ -29,9 +30,10 @@ class CapitalRegistry:
         event_bus.subscribe(EventType.ORDER_FAILED, self._handle_order_failure)
 
     def get_available_capital(self) -> float:
-        """Lockless dirty read (Phase 1). Used for fast pre-checks before securing the Mutex."""
-        reserved = sum(amount for amount, _ in self._reservations.values())
-        return self.total_capital - self.used_capital - reserved
+        """Atomic read of available capital (net of used and reserved)."""
+        with self._lock:
+            reserved = sum(amount for amount, _ in self._reservations.values())
+            return self.total_capital - self.used_capital - reserved
 
     def reserve(self, intent: TradeIntent, assigned_position_size: int) -> Tuple[bool, str]:
         """
@@ -46,7 +48,7 @@ class CapitalRegistry:
             
             if true_available >= amount_required:
                 res_id = str(uuid.uuid4())
-                self._reservations[res_id] = (amount_required, time.time())
+                self._reservations[res_id] = (amount_required, time_provider.time())
                 logger.debug(f"Capital Reserved: {amount_required} | ID: {res_id} | Avail left: {true_available - amount_required}")
                 return True, res_id
             else:
@@ -70,7 +72,7 @@ class CapitalRegistry:
 
     def sweep_expired_reservations(self):
         """Fail-safe background process to catch orphaned reservations."""
-        now = time.time()
+        now = time_provider.time()
         with self._lock:
             expired_ids = [
                 r_id for r_id, (amt, ts) in self._reservations.items() 

@@ -16,14 +16,16 @@
 html {
   font-size: 14px;
   scroll-behavior: smooth;
+  /* Smooth background/color transition when theme switches via data-theme attr */
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 body {
   font-family: var(--font-sans);
   background-color: var(--bg-base);
   background-image:
-    radial-gradient(ellipse 80% 60% at 50% -20%, rgba(34, 211, 238, 0.04), transparent),
-    radial-gradient(ellipse 60% 50% at 80% 100%, rgba(167, 139, 250, 0.03), transparent),
+    radial-gradient(ellipse 80% 60% at 50% -20%, var(--body-glow-primary), transparent),
+    radial-gradient(ellipse 60% 50% at 80% 100%, var(--body-glow-secondary), transparent),
     linear-gradient(180deg, var(--bg-base) 0%, var(--bg-surface) 100%);
   background-attachment: fixed;
   color: var(--text-primary);
@@ -66,7 +68,7 @@ h3 {
   border-radius: var(--radius-lg);
   backdrop-filter: var(--blur-glass);
   -webkit-backdrop-filter: var(--blur-glass);
-  box-shadow: var(--shadow-md), inset 0 1px 0 var(--glass-highlight);
+  box-shadow: var(--shadow-md), var(--glass-specular);
   position: relative;
   overflow: hidden;
   transition: var(--transition-base);
@@ -79,7 +81,7 @@ h3 {
   left: 0;
   right: 0;
   height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.08), transparent);
+  background: linear-gradient(90deg, transparent, var(--glass-highlight), transparent);
   pointer-events: none;
 }
 
@@ -181,6 +183,34 @@ h3 {
   font-variant-numeric: tabular-nums;
   color: var(--text-heading);
   line-height: 1;
+  transition: var(--transition-pnl);
+}
+
+/* LARGE — Drawdown-class dominance: extra horizontal room */
+.metric-card-large {
+  padding: var(--sp-6) var(--sp-7);
+  /* --sp-7 = 28px, defined in design-tokens */
+}
+
+.metric-value-large {
+  font-size: 2rem !important;
+  font-weight: 600 !important;
+  letter-spacing: -0.02em;
+}
+
+/* MUTED — P&L and secondary metrics */
+.metric-card-muted {
+  opacity: 0.82;
+}
+
+.metric-value-muted {
+  font-size: 1.15rem !important;
+  color: var(--text-secondary) !important;
+}
+
+/* ALERT — drawdown > 10% */
+.metric-card-alert {
+  border-color: rgba(239, 68, 68, 0.25) !important;
 }
 
 .metric-card .metric-sub {
@@ -303,9 +333,9 @@ h3 {
 
 .ui-input:focus,
 .ui-select:focus {
-  border-color: rgba(34, 211, 238, 0.35);
-  box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.08);
-  background: rgba(0, 0, 0, 0.4);
+  border-color: var(--accent-cyan-dim);
+  box-shadow: 0 0 0 3px var(--accent-cyan-glow);
+  background: var(--bg-inset);
 }
 
 .ui-input:disabled,
@@ -472,4 +502,116 @@ h3 {
 
 .animate-in {
   animation: fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* ── Risk Glow Utilities ─────────────────────────────────────── */
+/* Applied to cards/banners when risk is elevated/critical */
+.risk-elevated-glow {
+  box-shadow: var(--risk-glow-elevated);
+}
+
+.risk-critical-glow {
+  box-shadow: var(--risk-glow-high);
+  /* No animation — rule: bright red only for silent static alerts */
+}
+
+/* ── Virtualized Table ───────────────────────────────────────── */
+/* Contains max-height + hardware-accelerated scroll for execution table */
+.virtualized-table {
+  max-height: 420px;
+  overflow-y: auto;
+  contain: content;
+  will-change: scroll-position;
+}
+
+/* ── Audit Meta Typography ───────────────────────────────────── */
+/* Governance transparency timestamps, ref IDs etc. */
+.audit-meta {
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  letter-spacing: 0.03em;
+}
+
+/* ── Execution Quality Indicators ────────────────────────────── */
+.latency-warn {
+  color: var(--color-warning);
+}
+
+.latency-ok {
+  color: var(--text-muted);
+}
+
+.slippage-warn {
+  color: var(--accent-orange-muted);
+}
+
+.slippage-ok {
+  color: var(--text-muted);
+}
+
+/* ── Strategy Flags ─────────────────────────────────────────── */
+.drift-flag {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--color-warning);
+  box-shadow: 0 0 6px rgba(245, 158, 11, 0.5);
+  flex-shrink: 0;
+}
+
+.regime-badge-compat {
+  color: var(--color-positive);
+  border-color: rgba(34, 197, 94, 0.2);
+}
+
+.regime-badge-mismatch {
+  color: var(--color-warning);
+  border-color: rgba(245, 158, 11, 0.2);
+}
+
+/* ── Session Long Mode (fatigue reduction) ──────────────────── */
+/* Applied by JS after 4hrs to de-saturate accent tones */
+body.session-long {
+  filter: saturate(0.85);
+  transition: filter 1s ease;
+}
+
+/* ── Toggle Switches (Global) ────────────────────────────────── */
+.toggle-switch {
+  width: 40px;
+  height: 22px;
+  border-radius: 11px;
+  background: rgba(255, 255, 255, 0.15);
+  cursor: pointer;
+  position: relative;
+  transition: var(--transition-base);
+  flex-shrink: 0;
+}
+
+.toggle-switch.on {
+  background: var(--color-positive);
+}
+
+.toggle-switch.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.toggle-knob {
+  width: 18px;
+  height: 18px;
+  background: #fff;
+  border-radius: 50%;
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  transition: transform 0.25s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.toggle-switch.on .toggle-knob {
+  transform: translateX(18px);
 }

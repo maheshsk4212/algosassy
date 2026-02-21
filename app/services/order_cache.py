@@ -1,7 +1,8 @@
 import logging
 import threading
-import time
 from typing import List, Dict, Optional
+
+from app.core.time_provider import time_provider
 from app.services.kite_service import kite_service  # Ensure kite_service has get_orders
 
 logger = logging.getLogger(__name__)
@@ -24,7 +25,7 @@ class SharedOrderCache:
         Uses Mutex to prevent multiple concurrent threads from hammering the API
         if the cache expires exactly when 3 threads ask for it simultaneously.
         """
-        now = time.time()
+        now = time_provider.time()
         
         # 1. Dirty Read (Fast Path)
         if not force_refresh and (now - self._last_fetch_time) < self.cache_duration:
@@ -33,7 +34,7 @@ class SharedOrderCache:
         # 2. Synchronized Fetch (Thundering Herd Protection)
         with self._lock:
             # Re-check condition inside lock in case another thread already fetched
-            if not force_refresh and (time.time() - self._last_fetch_time) < self.cache_duration:
+            if not force_refresh and (time_provider.time() - self._last_fetch_time) < self.cache_duration:
                 return self._last_orders
                 
             try:
@@ -41,7 +42,7 @@ class SharedOrderCache:
                 # self._last_orders = await kite_service.get_orders()
                 logger.debug("Fetched fresh orders from Broker API")
                 self._last_orders = [] # Mock empty for now
-                self._last_fetch_time = time.time()
+                self._last_fetch_time = time_provider.time()
             except Exception as e:
                 logger.error(f"Failed to fetch broker orders: {e}")
                 

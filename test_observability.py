@@ -1,6 +1,7 @@
 import logging
 import asyncio
 import time
+from app.core.time_provider import time_provider
 from app.core.logging_config import setup_async_logging
 from app.services.alert_manager import alert_manager
 from app.core.event_bus import event_bus, EventType
@@ -46,10 +47,10 @@ async def test_alert_flood_suppression():
     # Let asyncio process the spawned tasks
     await asyncio.sleep(0.5) 
     print(f"Number of timestamps tracked in deque: {len(alert_manager._recent_alert_timestamps)}")
-    print(f"Is Muted? {time.time() < alert_manager._muted_until}")
+    print(f"Is Muted? {time_provider.time() < alert_manager._muted_until}")
     
     assert len(alert_manager._recent_alert_timestamps) == 0, "Deque should be cleared on mute"
-    assert time.time() < alert_manager._muted_until, "AlertManager failed to mute!"
+    assert time_provider.time() < alert_manager._muted_until, "AlertManager failed to mute!"
 
 def test_trace_id_generation():
     print("\n--- Testing Trace ID Auto-Generation ---")

@@ -1,4 +1,5 @@
 from fastapi import APIRouter
+import psutil
 from app.services.tick_queue_manager import tick_queue_manager
 from app.services.websocket_manager import websocket_manager
 from app.services.tick_processor import tick_processor
@@ -32,5 +33,51 @@ async def get_market_health():
         },
         "candle_builder": {
             "symbols_tracked": list(candle_builder._candle_store.keys()) # Thread-safe shallow read
+        },
+        "system_os": {
+            "cpu_percent": psutil.cpu_percent(interval=0.1),
+            "memory_percent": psutil.virtual_memory().percent
         }
     }
+
+@router.get("/subsystems")
+async def get_subsystems_health():
+    """Returns real-time health status of each internal sub-system for the dashboard UI."""
+    from app.services.broker_reconciliation import broker_reconciliation_service
+    from app.services.drift_monitor import drift_monitor
+    from app.services.capital_registry import capital_registry
+    from app.state_manager import state_manager
+    import time as _t
+
+    reservation_count = len(capital_registry._reservations)
+    queue_depth = tick_queue_manager.get_queue_size()
+
+    systems = [
+        {
+            "name": "Reconciliation Engine",
+            "detail": f"Watching {len(broker_reconciliation_service._mismatch_watch)} mismatch(es)",
+            "status": "WARNING" if broker_reconciliation_service._mismatch_watch else "HEALTHY"
+        },
+        {
+            "name": "Capital Reservation Queue",
+            "detail": f"{reservation_count} order(s) pending capital lock",
+            "status": "ELEVATED" if reservation_count > 3 else "HEALTHY"
+        },
+        {
+            "name": "Tick Data Buffer",
+            "detail": f"Queue depth: {queue_depth} msgs",
+            "status": "WARNING" if queue_depth > 150 else "HEALTHY"
+        },
+        {
+            "name": "Drift Monitor",
+            "detail": f"{len(drift_monitor._strategy_pnls)} strategy/strategies tracked",
+            "status": "HEALTHY"
+        },
+        {
+            "name": "System State",
+            "detail": state_manager.get_state().name,
+            "status": "HEALTHY" if state_manager.get_state().name in ["READY", "TRADING"] else "WARNING"
+        }
+    ]
+
+    return {"subsystems": systems}

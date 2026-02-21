@@ -1,7 +1,7 @@
 .health-container {
     display: flex;
     flex-direction: column;
-    gap: 1.5rem;
+    gap: var(--sp-6);
     width: 100%;
 }
 
@@ -14,7 +14,7 @@
 .health-header h2 {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
+    gap: var(--sp-3);
     color: var(--text-primary);
 }
 
@@ -52,14 +52,14 @@
 .vital-cards-row {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    gap: 1.5rem;
+    gap: var(--sp-6);
 }
 
 .vital-card {
-    padding: 1.5rem;
+    padding: var(--sp-6);
     display: flex;
     flex-direction: column;
-    gap: 1rem;
+    gap: var(--sp-4);
     transition: var(--transition-base);
 }
 
@@ -146,24 +146,24 @@
 
 .health-main-panels {
     display: flex;
-    gap: 1.5rem;
-    margin-top: 1.5rem;
+    gap: var(--sp-6);
+    margin-top: var(--sp-6);
 }
 
 .queue-panel {
     flex: 2;
-    padding: 1.5rem;
+    padding: var(--sp-6);
     display: flex;
     flex-direction: column;
-    gap: 1rem;
+    gap: var(--sp-4);
 }
 
 .processes-panel {
     flex: 1;
-    padding: 1.5rem;
+    padding: var(--sp-6);
     display: flex;
     flex-direction: column;
-    gap: 1rem;
+    gap: var(--sp-4);
 }
 
 .queue-panel h3,
@@ -172,9 +172,9 @@
     font-weight: 600;
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: var(--sp-2);
     border-bottom: 1px solid var(--glass-border);
-    padding-bottom: 0.5rem;
+    padding-bottom: var(--sp-2);
 }
 
 .queue-chart {
@@ -185,30 +185,25 @@
 .queue-stats {
     display: flex;
     justify-content: space-between;
-    background: rgba(0, 0, 0, 0.2);
-    padding: 1rem;
-    border-radius: 8px;
+    background: var(--bg-inset);
+    padding: var(--sp-4);
+    border-radius: var(--radius-md);
 }
 
-.q-stat {
-    display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
-}
-
-.q-stat .label {
+/* Scoped under .queue-stats to avoid conflicting with global .stat-label */
+.queue-stats .q-stat .label {
     font-size: 0.75rem;
     color: var(--text-secondary);
     text-transform: uppercase;
 }
 
-.q-stat .value {
+.queue-stats .q-stat .value {
     font-family: var(--font-numeric);
     font-size: 1.1rem;
     font-weight: 700;
 }
 
-.q-stat .value.warning {
+.queue-stats .q-stat .value.warning {
     color: var(--accent-warning);
 }
 
@@ -222,9 +217,9 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 1rem;
-    border-radius: 8px;
-    background: rgba(0, 0, 0, 0.2);
+    padding: var(--sp-4);
+    border-radius: var(--radius-md);
+    background: var(--bg-inset);
     border-left: 3px solid transparent;
 }
 

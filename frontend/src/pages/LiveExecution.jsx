@@ -1,66 +1,67 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Activity, ZapOff, Zap } from 'lucide-react';
+import { Activity, ZapOff, Zap, Clock, TrendingUp } from 'lucide-react';
 import { StatusBadge } from '../components/shared/StatusBadge';
 import './LiveExecution.css';
 
 export const LiveExecution = () => {
     const [orders, setOrders] = useState([]);
     const [cpuWarning, setCpuWarning] = useState(false);
+    const [summary, setSummary] = useState({ avgLatency: null, avgSlippage: null, totalToday: 0 });
     const eventBufferRef = useRef([]);
+    const burstCountRef = useRef(0);
+    const burstTimerRef = useRef(null);
 
     useEffect(() => {
-        const initial = Array.from({ length: 15 }).map((_, i) => ({
-            id: `ord_${1000 - i}`,
-            symbol: ['BTC/USD', 'ETH/USD', 'SOL/USD'][i % 3],
-            side: i % 2 === 0 ? 'BUY' : 'SELL',
-            size: (Math.random() * 2).toFixed(4),
-            price: (Math.random() * 50000 + 1000).toFixed(2),
-            status: 'FILLED',
-            time: new Date(Date.now() - i * 14000).toISOString()
-        }));
-        setOrders(initial);
+        const fetchOrders = async () => {
+            try {
+                const res = await fetch('http://localhost:8000/api/v1/dashboard/orders');
+                const data = await res.json();
+                if (Array.isArray(data)) {
+                    const parsedOrders = data.map(o => ({
+                        id: o.order_id,
+                        symbol: o.tradingsymbol,
+                        side: o.transaction_type,
+                        size: o.quantity,
+                        price: o.average_price || o.price || 0,
+                        status: o.status === 'COMPLETE' ? 'FILLED' : o.status,
+                        time: o.order_timestamp,
+                        latency_ms: o.latency_ms || null,
+                        slippage_pct: o.slippage_pct || null,
+                        strategy: o.tag || o.strategy_name || '--',
+                        trace_id: o.order_id || '--',
+                    }));
 
-        let frameId;
-        let lastRenderTime = performance.now();
-        let eventsSinceLastSecond = 0;
-        let lastSecondTick = performance.now();
+                    // Track event burst rate → disable animation if > 20/sec
+                    burstCountRef.current++;
+                    clearTimeout(burstTimerRef.current);
+                    burstTimerRef.current = setTimeout(() => {
+                        setCpuWarning(burstCountRef.current > 20);
+                        burstCountRef.current = 0;
+                    }, 1000);
 
-        const mockWS = setInterval(() => {
-            const now = performance.now();
-            eventsSinceLastSecond++;
-            if (now - lastSecondTick >= 1000) {
-                setCpuWarning(eventsSinceLastSecond > 20);
-                eventsSinceLastSecond = 0;
-                lastSecondTick = now;
-            }
-            eventBufferRef.current.push({
-                id: `mkt_${Math.floor(Math.random() * 100000)}`,
-                symbol: ['BTC/USD', 'ETH/USD', 'SOL/USD'][Math.floor(Math.random() * 3)],
-                side: Math.random() > 0.5 ? 'BUY' : 'SELL',
-                size: (Math.random() * 0.5).toFixed(4),
-                price: (55000 + Math.random() * 100).toFixed(2),
-                status: Math.random() > 0.8 ? 'CANCELED' : 'FILLED',
-                time: new Date().toISOString()
-            });
-        }, 45);
+                    setOrders(parsedOrders.slice(0, 50));
 
-        const renderLoop = (time) => {
-            if (time - lastRenderTime >= 250) {
-                if (eventBufferRef.current.length > 0) {
-                    setOrders(prev => [...eventBufferRef.current, ...prev].slice(0, 50));
-                    eventBufferRef.current = [];
-                    lastRenderTime = time;
+                    // Build execution quality summary
+                    const latencies = parsedOrders.filter(o => o.latency_ms).map(o => o.latency_ms);
+                    const slippages = parsedOrders.filter(o => o.slippage_pct).map(o => o.slippage_pct);
+                    setSummary({
+                        avgLatency: latencies.length ? (latencies.reduce((a, b) => a + b, 0) / latencies.length).toFixed(0) : null,
+                        avgSlippage: slippages.length ? (slippages.reduce((a, b) => a + b, 0) / slippages.length).toFixed(3) : null,
+                        totalToday: parsedOrders.length,
+                    });
                 }
+            } catch (err) {
+                console.error("Failed to fetch orders:", err);
             }
-            frameId = requestAnimationFrame(renderLoop);
         };
-        frameId = requestAnimationFrame(renderLoop);
 
-        return () => { clearInterval(mockWS); cancelAnimationFrame(frameId); };
+        fetchOrders();
+        const mockWS = setInterval(fetchOrders, 1000);
+        return () => { clearInterval(mockWS); clearTimeout(burstTimerRef.current); };
     }, []);
 
     return (
-        <div className="execution-page">
+        <div className="page-container">
             <div className="execution-header">
                 <div className="header-left">
                     <h2><Activity size={20} /> Live Execution</h2>
@@ -74,6 +75,26 @@ export const LiveExecution = () => {
                 </div>
             </div>
 
+            {/* Execution Quality Summary Strip */}
+            <div className="exec-summary-strip">
+                <div className="exec-summary-item">
+                    <span className="exec-summary-label"><Clock size={10} /> Avg Latency</span>
+                    <span className={`exec-summary-value ${summary.avgLatency > 200 ? 'latency-warn' : 'latency-ok'}`}>
+                        {summary.avgLatency != null ? `${summary.avgLatency}ms` : '--'}
+                    </span>
+                </div>
+                <div className="exec-summary-item">
+                    <span className="exec-summary-label"><TrendingUp size={10} /> Avg Slippage</span>
+                    <span className={`exec-summary-value ${summary.avgSlippage > 0.1 ? 'slippage-warn' : 'slippage-ok'}`}>
+                        {summary.avgSlippage != null ? `${summary.avgSlippage}%` : '--'}
+                    </span>
+                </div>
+                <div className="exec-summary-item">
+                    <span className="exec-summary-label">Orders Today</span>
+                    <span className="exec-summary-value text-cyan">{summary.totalToday}</span>
+                </div>
+            </div>
+
             <div className="glass-panel order-table">
                 <div className="order-header">
                     <span>Time</span>
@@ -81,9 +102,12 @@ export const LiveExecution = () => {
                     <span>Side</span>
                     <span>Size</span>
                     <span>Price</span>
+                    <span>Latency</span>
+                    <span>Slippage</span>
+                    <span>Strategy</span>
                     <span>State</span>
                 </div>
-                <div className="order-body">
+                <div className={`order-body virtualized-table`}>
                     {orders.map((order, idx) => (
                         <div key={order.id + idx} className={`order-row ${!cpuWarning && idx === 0 ? 'new-row' : ''}`}>
                             <span className="col-time">
@@ -92,7 +116,14 @@ export const LiveExecution = () => {
                             <span className="col-symbol">{order.symbol}</span>
                             <span className={order.side === 'BUY' ? 'col-side-buy' : 'col-side-sell'}>{order.side}</span>
                             <span className="col-right">{order.size}</span>
-                            <span className="col-right">${order.price}</span>
+                            <span className="col-right">₹{order.price}</span>
+                            <span className={`col-right ${order.latency_ms > 200 ? 'latency-warn' : 'latency-ok'}`}>
+                                {order.latency_ms != null ? `${order.latency_ms}ms` : '--'}
+                            </span>
+                            <span className={`col-right ${order.slippage_pct > 0.1 ? 'slippage-warn' : 'slippage-ok'}`}>
+                                {order.slippage_pct != null ? `${order.slippage_pct.toFixed(3)}%` : '--'}
+                            </span>
+                            <span className="col-strategy">{order.strategy}</span>
                             <span className="col-status">
                                 <StatusBadge status={order.status} type={order.status === 'FILLED' ? 'profit' : 'loss'} />
                             </span>

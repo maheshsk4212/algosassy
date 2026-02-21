@@ -1,14 +1,18 @@
 import logging
 import threading
-from typing import List
+import time
+from typing import List, Optional
 from kiteconnect import KiteTicker
 
+from app.core.time_provider import time_provider
 from app.models.tick_model import TickModel
 from app.services.tick_queue_manager import tick_queue_manager
 from app.services.mtm_engine import mtm_engine
 from app.state_manager import state_manager, SystemState
 from app.core.event_bus import event_bus, EventType
 from app.models.auth_token_model import AuthToken
+from app.core.database import SessionLocal
+from app.config import config
 
 logger = logging.getLogger(__name__)
 
@@ -18,7 +22,7 @@ class WebSocketManager:
         self.is_connected = False
         self.subscribed_tokens: List[int] = []
         self._reconnect_delay = 2
-        self.last_tick_timestamp: float = time.time()
+        self.last_tick_timestamp: float = time_provider.time()
         self._heartbeat_thread: Optional[threading.Thread] = None
         self._monitor_running: bool = False
         self.is_degraded: bool = False
@@ -36,7 +40,7 @@ class WebSocketManager:
             time.sleep(1)
             # Active only if READY and CONNECTED flags say we should be getting data
             if self.is_connected and state_manager.get_state() == SystemState.READY:
-                idle_seconds = time.time() - self.last_tick_timestamp
+                idle_seconds = time_provider.time() - self.last_tick_timestamp
                 
                 # Dark Period Threshold (3 seconds)
                 if idle_seconds > 3.0:
@@ -95,7 +99,7 @@ class WebSocketManager:
             self._reconnect_delay = 2
         
         # Phase 5 Dark Period Tracker
-        self.last_tick_timestamp = time.time()
+        self.last_tick_timestamp = time_provider.time()
         self._monitor_running = False
         if self._heartbeat_thread and self._heartbeat_thread.is_alive():
             self._heartbeat_thread.join(timeout=1) # Give it a moment to stop
@@ -123,7 +127,7 @@ class WebSocketManager:
         """
         PRODUCER FUNCTION: Enqueue ticks immediately. Zero processing logic here.
         """
-        self.last_tick_timestamp = time.time()
+        self.last_tick_timestamp = time_provider.time()
         # Guard clause
         if state_manager.get_state() != SystemState.READY:
             logger.warning("Received ticks while NOT ready. Dropping.")

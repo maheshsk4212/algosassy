@@ -1,0 +1,145 @@
+/* ═══════════════════════════════════════════════════════════════
+   LIVE EXECUTION
+   ═══════════════════════════════════════════════════════════════ */
+
+.execution-page {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-5);
+    height: calc(100vh - 140px);
+}
+
+.execution-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-shrink: 0;
+    padding-bottom: var(--sp-4);
+    border-bottom: 1px solid var(--glass-border);
+}
+
+.execution-header .header-left h2 {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-3);
+}
+
+.execution-header .header-left p {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    margin-top: 2px;
+}
+
+.header-right {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-4);
+}
+
+.cpu-warning {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-2);
+    padding: var(--sp-2) var(--sp-3);
+    background: var(--color-warning-glow);
+    border: 1px solid rgba(245, 158, 11, 0.15);
+    border-radius: var(--radius-xs);
+    font-size: 0.65rem;
+    font-family: var(--font-mono);
+    color: var(--color-warning);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-weight: 700;
+}
+
+/* ── Order Table ────────────────────────────────────────────── */
+.order-table {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.order-header {
+    display: grid;
+    grid-template-columns: 1.2fr 1fr 0.7fr 1fr 1fr 0.8fr;
+    gap: var(--sp-4);
+    padding: var(--sp-3) var(--sp-5);
+    background: var(--bg-inset);
+    border-bottom: 1px solid var(--glass-border);
+    flex-shrink: 0;
+    font-size: 0.6rem;
+    font-family: var(--font-mono);
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-weight: 600;
+}
+
+.order-header span:nth-child(n+4) {
+    text-align: right;
+}
+
+.order-body {
+    flex: 1;
+    overflow-y: auto;
+}
+
+.order-row {
+    display: grid;
+    grid-template-columns: 1.2fr 1fr 0.7fr 1fr 1fr 0.8fr;
+    gap: var(--sp-4);
+    padding: var(--sp-3) var(--sp-5);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.02);
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    align-items: center;
+    transition: background 0.15s ease;
+}
+
+.order-row:hover {
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.order-row.new-row {
+    background: rgba(34, 211, 238, 0.03);
+}
+
+.order-row .col-time {
+    color: var(--text-muted);
+    font-size: 0.75rem;
+}
+
+.order-row .col-symbol {
+    font-weight: 600;
+    color: var(--text-heading);
+}
+
+.order-row .col-side-buy {
+    color: var(--color-profit);
+}
+
+.order-row .col-side-sell {
+    color: var(--color-loss);
+}
+
+.order-row .col-right {
+    text-align: right;
+}
+
+.order-row .col-status {
+    text-align: right;
+    display: flex;
+    justify-content: flex-end;
+}
+
+/* Spin animation for loader */
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.spin-icon {
+    animation: spin 1s linear infinite;
+}

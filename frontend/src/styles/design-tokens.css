@@ -1,0 +1,102 @@
+/* ═══════════════════════════════════════════════════════════════
+   QUANT COCKPIT — DESIGN TOKENS v3 (Premium Glass Terminal)
+   ═══════════════════════════════════════════════════════════════ */
+
+:root {
+    /* ── Background System ────────────────────────────────────── */
+    --bg-base: #06080d;
+    --bg-surface: #0b0e17;
+    --bg-elevated: #111422;
+    --bg-inset: rgba(0, 0, 0, 0.35);
+
+    /* ── Glassmorphism Depth Layers (max 2 blur at any time) ─── */
+    --glass-1: rgba(14, 17, 30, 0.55);
+    --glass-2: rgba(20, 24, 42, 0.45);
+    --glass-3: rgba(28, 33, 55, 0.35);
+    --glass-border: rgba(255, 255, 255, 0.06);
+    --glass-border-hover: rgba(255, 255, 255, 0.12);
+    --glass-highlight: rgba(255, 255, 255, 0.03);
+
+    /* ── Accent Colors — Curated HSL Palette ───────────────── */
+    --accent-cyan: #22d3ee;
+    --accent-cyan-dim: rgba(34, 211, 238, 0.15);
+    --accent-cyan-glow: rgba(34, 211, 238, 0.08);
+
+    --accent-violet: #a78bfa;
+    --accent-violet-dim: rgba(167, 139, 250, 0.15);
+    --accent-violet-glow: rgba(167, 139, 250, 0.08);
+
+    --accent-emerald: #34d399;
+    --accent-emerald-dim: rgba(52, 211, 153, 0.15);
+    --accent-emerald-glow: rgba(52, 211, 153, 0.08);
+
+    --accent-amber: #fbbf24;
+    --accent-amber-dim: rgba(251, 191, 36, 0.15);
+    --accent-amber-glow: rgba(251, 191, 36, 0.08);
+
+    --accent-rose: #fb7185;
+    --accent-rose-dim: rgba(251, 113, 133, 0.15);
+    --accent-rose-glow: rgba(251, 113, 133, 0.08);
+
+    /* ── Status Colors (Psychology-Aware) ─────────────────── */
+    --color-profit: #4f9cca;
+    /* Muted Blue — calm positive */
+    --color-profit-glow: rgba(79, 156, 202, 0.12);
+    --color-loss: #6c7a8d;
+    /* Muted Gray — subdued negative */
+    --color-loss-glow: rgba(108, 122, 141, 0.12);
+    --color-alert: #ef4444;
+    /* Bright Red — ONLY for system alerts */
+    --color-alert-glow: rgba(239, 68, 68, 0.12);
+    --color-warning: #f59e0b;
+    --color-warning-glow: rgba(245, 158, 11, 0.12);
+    --color-positive: #22c55e;
+    --color-positive-glow: rgba(34, 197, 94, 0.12);
+
+    /* ── Text Hierarchy ───────────────────────────────────── */
+    --text-primary: #e8ecf4;
+    --text-secondary: #8893a7;
+    --text-muted: #4a5568;
+    --text-heading: #f1f5f9;
+
+    /* ── Typography ───────────────────────────────────────── */
+    --font-display: 'Outfit', 'Inter', system-ui, sans-serif;
+    --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+    --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+
+    /* ── Spacing Scale ────────────────────────────────────── */
+    --sp-1: 4px;
+    --sp-2: 8px;
+    --sp-3: 12px;
+    --sp-4: 16px;
+    --sp-5: 20px;
+    --sp-6: 24px;
+    --sp-8: 32px;
+    --sp-10: 40px;
+    --sp-12: 48px;
+    --sp-16: 64px;
+
+    /* ── Border Radius ────────────────────────────────────── */
+    --radius-xs: 4px;
+    --radius-sm: 6px;
+    --radius-md: 10px;
+    --radius-lg: 14px;
+    --radius-xl: 20px;
+    --radius-full: 9999px;
+
+    /* ── Effects ──────────────────────────────────────────── */
+    --blur-glass: blur(16px);
+    --blur-heavy: blur(32px);
+
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.5);
+    --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.4);
+    --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.5);
+    --shadow-glow-cyan: 0 0 20px rgba(34, 211, 238, 0.15);
+    --shadow-glow-violet: 0 0 20px rgba(167, 139, 250, 0.15);
+    --shadow-glow-emerald: 0 0 20px rgba(52, 211, 153, 0.15);
+
+    /* ── Transitions (Performance-safe: fade only) ────────── */
+    --transition-fast: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+    --transition-base: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    --transition-slow: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}

@@ -1,0 +1,105 @@
+/* ═══════════════════════════════════════════════════════════════
+   SETTINGS PAGE
+   ═══════════════════════════════════════════════════════════════ */
+
+.settings-page {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-6);
+    max-width: 1000px;
+}
+
+.settings-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-3);
+}
+
+.save-confirm {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-2);
+    color: var(--color-positive);
+    font-size: 0.8rem;
+    font-weight: 600;
+    animation: fadeIn 0.3s ease both;
+}
+
+.settings-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--sp-5);
+}
+
+.settings-section {
+    padding: var(--sp-6);
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-5);
+}
+
+.settings-section h3 {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-3);
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    padding-bottom: var(--sp-3);
+    border-bottom: 1px solid var(--glass-border);
+}
+
+.settings-fields {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-4);
+}
+
+/* Toggle Row */
+.toggle-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--sp-2) 0;
+}
+
+.toggle-label {
+    font-size: 0.85rem;
+    color: var(--text-primary);
+}
+
+.toggle-switch {
+    width: 40px;
+    height: 22px;
+    border-radius: 11px;
+    background: rgba(255, 255, 255, 0.15);
+    cursor: pointer;
+    position: relative;
+    transition: background 0.25s ease;
+    flex-shrink: 0;
+}
+
+.toggle-switch.on {
+    background: var(--color-positive);
+}
+
+.toggle-knob {
+    width: 18px;
+    height: 18px;
+    background: #fff;
+    border-radius: 50%;
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    transition: transform 0.25s ease;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.toggle-switch.on .toggle-knob {
+    transform: translateX(18px);
+}
+
+@media (max-width: 768px) {
+    .settings-grid {
+        grid-template-columns: 1fr;
+    }
+}

@@ -1,0 +1,475 @@
+@import './styles/design-tokens.css';
+
+/* ═══════════════════════════════════════════════════════════════
+   QUANT COCKPIT — GLOBAL STYLES v3 (Premium Glass Terminal)
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Reset ──────────────────────────────────────────────────── */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 14px;
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--bg-base);
+  background-image:
+    radial-gradient(ellipse 80% 60% at 50% -20%, rgba(34, 211, 238, 0.04), transparent),
+    radial-gradient(ellipse 60% 50% at 80% 100%, rgba(167, 139, 250, 0.03), transparent),
+    linear-gradient(180deg, var(--bg-base) 0%, var(--bg-surface) 100%);
+  background-attachment: fixed;
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  min-height: 100vh;
+  overflow-x: hidden;
+  line-height: 1.6;
+}
+
+/* ── Typography ─────────────────────────────────────────────── */
+h1,
+h2 {
+  font-family: var(--font-display);
+  color: var(--text-heading);
+  letter-spacing: -0.025em;
+  line-height: 1.2;
+}
+
+h1 {
+  font-size: 1.75rem;
+  font-weight: 700;
+}
+
+h2 {
+  font-size: 1.35rem;
+  font-weight: 600;
+}
+
+h3 {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+/* ── Glass Panel System ─────────────────────────────────────── */
+.glass-panel {
+  background: var(--glass-1);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  backdrop-filter: var(--blur-glass);
+  -webkit-backdrop-filter: var(--blur-glass);
+  box-shadow: var(--shadow-md), inset 0 1px 0 var(--glass-highlight);
+  position: relative;
+  overflow: hidden;
+  transition: var(--transition-base);
+}
+
+.glass-panel::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.08), transparent);
+  pointer-events: none;
+}
+
+.glass-panel:hover {
+  border-color: var(--glass-border-hover);
+  box-shadow: var(--shadow-lg), inset 0 1px 0 var(--glass-highlight);
+}
+
+.glass-panel-flush {
+  background: var(--glass-1);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  position: relative;
+}
+
+/* ── Metric Card (Glowing Accent) ───────────────────────────── */
+.metric-card {
+  background: var(--glass-1);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  backdrop-filter: var(--blur-glass);
+  -webkit-backdrop-filter: var(--blur-glass);
+  padding: var(--sp-5) var(--sp-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  position: relative;
+  overflow: hidden;
+  transition: var(--transition-base);
+  cursor: default;
+}
+
+.metric-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.06), transparent);
+  pointer-events: none;
+}
+
+.metric-card::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 60%;
+  background: var(--_card-glow, transparent);
+  opacity: 0;
+  transition: opacity 0.4s ease;
+  pointer-events: none;
+}
+
+.metric-card:hover {
+  border-color: var(--glass-border-hover);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
+
+.metric-card:hover::after {
+  opacity: 1;
+}
+
+.metric-card.glow-cyan {
+  --_card-glow: linear-gradient(to top, var(--accent-cyan-glow), transparent);
+}
+
+.metric-card.glow-emerald {
+  --_card-glow: linear-gradient(to top, var(--accent-emerald-glow), transparent);
+}
+
+.metric-card.glow-violet {
+  --_card-glow: linear-gradient(to top, var(--accent-violet-glow), transparent);
+}
+
+.metric-card.glow-amber {
+  --_card-glow: linear-gradient(to top, var(--accent-amber-glow), transparent);
+}
+
+.metric-card.glow-rose {
+  --_card-glow: linear-gradient(to top, var(--accent-rose-glow), transparent);
+}
+
+.metric-card .metric-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.metric-card .metric-value {
+  font-family: var(--font-mono);
+  font-size: 1.5rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-heading);
+  line-height: 1;
+}
+
+.metric-card .metric-sub {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+}
+
+/* ── Section Headers ────────────────────────────────────────── */
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: var(--sp-4);
+  border-bottom: 1px solid var(--glass-border);
+  margin-bottom: var(--sp-6);
+}
+
+.section-header h2 {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+}
+
+.section-header .section-sub {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  font-weight: 400;
+  margin-left: var(--sp-2);
+}
+
+.section-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-2) var(--sp-3);
+  background: var(--bg-inset);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-sm);
+  font-size: 0.7rem;
+  font-family: var(--font-mono);
+  color: var(--text-secondary);
+  letter-spacing: 0.03em;
+}
+
+/* ── Buttons ────────────────────────────────────────────────── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-2);
+  padding: var(--sp-3) var(--sp-5);
+  font-family: var(--font-sans);
+  font-weight: 600;
+  font-size: 0.8rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--glass-border);
+  background: var(--glass-2);
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: var(--transition-base);
+  white-space: nowrap;
+  letter-spacing: 0.01em;
+}
+
+.btn:hover:not(:disabled) {
+  background: var(--glass-3);
+  border-color: var(--glass-border-hover);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+}
+
+.btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, rgba(34, 211, 238, 0.15), rgba(167, 139, 250, 0.1));
+  border-color: rgba(34, 211, 238, 0.25);
+  color: var(--accent-cyan);
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: linear-gradient(135deg, rgba(34, 211, 238, 0.25), rgba(167, 139, 250, 0.15));
+  border-color: rgba(34, 211, 238, 0.4);
+  box-shadow: var(--shadow-glow-cyan);
+}
+
+.btn-danger {
+  border-color: rgba(239, 68, 68, 0.25);
+  color: var(--color-alert);
+  background: rgba(239, 68, 68, 0.06);
+}
+
+.btn-danger:hover:not(:disabled) {
+  background: rgba(239, 68, 68, 0.12);
+  border-color: rgba(239, 68, 68, 0.4);
+}
+
+/* ── Form Controls ──────────────────────────────────────────── */
+.ui-input,
+.ui-select {
+  width: 100%;
+  padding: var(--sp-3) var(--sp-4);
+  background: var(--bg-inset);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  transition: var(--transition-base);
+  outline: none;
+}
+
+.ui-input:focus,
+.ui-select:focus {
+  border-color: rgba(34, 211, 238, 0.35);
+  box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.08);
+  background: rgba(0, 0, 0, 0.4);
+}
+
+.ui-input:disabled,
+.ui-select:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.ui-select {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%238893a7' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 36px;
+}
+
+.ui-select option {
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.form-group label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* ── Status Badges ──────────────────────────────────────────── */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  border-radius: var(--radius-xs);
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  border: 1px solid transparent;
+}
+
+.status-badge.profit {
+  color: var(--color-profit);
+  background: var(--color-profit-glow);
+  border-color: rgba(79, 156, 202, 0.2);
+}
+
+.status-badge.loss {
+  color: var(--color-loss);
+  background: var(--color-loss-glow);
+  border-color: rgba(108, 122, 141, 0.15);
+}
+
+.status-badge.alert {
+  color: var(--color-alert);
+  background: var(--color-alert-glow);
+  border-color: rgba(239, 68, 68, 0.2);
+}
+
+.status-badge.warning {
+  color: var(--color-warning);
+  background: var(--color-warning-glow);
+  border-color: rgba(245, 158, 11, 0.2);
+}
+
+.status-badge.positive {
+  color: var(--color-positive);
+  background: var(--color-positive-glow);
+  border-color: rgba(34, 197, 94, 0.2);
+}
+
+/* ── Text Color Utilities ───────────────────────────────────── */
+.text-profit {
+  color: var(--color-profit);
+}
+
+.text-loss {
+  color: var(--color-loss);
+}
+
+.text-alert {
+  color: var(--color-alert);
+}
+
+.text-warning {
+  color: var(--color-warning);
+}
+
+.text-positive {
+  color: var(--color-positive);
+}
+
+.text-muted {
+  color: var(--text-secondary);
+}
+
+.text-heading {
+  color: var(--text-heading);
+}
+
+.text-cyan {
+  color: var(--accent-cyan);
+}
+
+.text-violet {
+  color: var(--accent-violet);
+}
+
+/* ── Scrollbar ──────────────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-full);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+/* ── Selection ──────────────────────────────────────────────── */
+::selection {
+  background: rgba(34, 211, 238, 0.25);
+  color: var(--text-heading);
+}
+
+/* ── Animations (safe, subtle) ──────────────────────────────── */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.animate-in {
+  animation: fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
+}

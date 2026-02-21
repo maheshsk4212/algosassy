@@ -66,6 +66,13 @@ const navItems = [
   { path: '/settings', label: 'Settings', icon: Settings },
 ];
 
+const bottomNavItems = [
+  { path: '/', label: 'Overview', icon: BarChart3 },
+  { path: '/execution', label: 'Execution', icon: Activity },
+  { path: '/risk', label: 'Risk', icon: ShieldCheck },
+  { path: '/portfolio', label: 'Portfolio', icon: PieChart },
+];
+
 import { Menu, X } from 'lucide-react';
 
 function App() {
@@ -88,9 +95,6 @@ function App() {
             <span className="brand-dot"></span>
             <h2>Quant Cockpit</h2>
           </div>
-          <button className="mobile-menu-btn" onClick={toggleMobileMenu}>
-            <Menu size={24} />
-          </button>
         </div>
 
         {/* Mobile Overlay */}
@@ -149,6 +153,26 @@ function App() {
             </Routes>
           </div>
         </main>
+
+        {/* Mobile Bottom Navigation (Hidden on Desktop) */}
+        <nav className="mobile-bottom-nav">
+          {bottomNavItems.map((item) => (
+            <NavLink
+              key={item.path}
+              to={item.path}
+              end={item.path === '/'}
+              onClick={closeMobileMenu}
+              className={({ isActive }) => isActive ? 'bottom-nav-item active' : 'bottom-nav-item'}
+            >
+              <item.icon size={20} />
+              <span>{item.label}</span>
+            </NavLink>
+          ))}
+          <button className="bottom-nav-item menu-toggle" onClick={toggleMobileMenu}>
+            <Menu size={20} />
+            <span>Menu</span>
+          </button>
+        </nav>
       </div>
     </BrowserRouter>
   );

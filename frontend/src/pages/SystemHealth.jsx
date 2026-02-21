@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { HeartPulse, Cpu, Database, Activity, Clock, Wifi, ArchiveRestore, AlertTriangle, Radio, Server } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Cell } from 'recharts';
+import { apiUrl } from '../config/api';
 import './SystemHealth.css';
 
 export const SystemHealth = () => {
@@ -19,8 +20,8 @@ export const SystemHealth = () => {
         const fetchHealth = async () => {
             try {
                 const [healthRes, subsysRes] = await Promise.all([
-                    fetch('http://localhost:8000/api/v1/market/health'),
-                    fetch('http://localhost:8000/api/v1/market/subsystems'),
+                    fetch(apiUrl('/api/v1/market/health')),
+                    fetch(apiUrl('/api/v1/market/subsystems')),
                 ]);
                 const data = await healthRes.json();
                 const subsysData = await subsysRes.json();

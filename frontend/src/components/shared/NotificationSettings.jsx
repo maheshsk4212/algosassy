@@ -1,24 +1,24 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Bell, Info } from 'lucide-react';
 
 export const NotificationSettings = () => {
-    const [config, setConfig] = useState({
-        alertSound: true,
-        desktopNotifications: true,
-        emailDigest: false,
-    });
-
-    // Load from localStorage on mount
-    useEffect(() => {
+    const [config, setConfig] = useState(() => {
+        const fallback = {
+            alertSound: true,
+            desktopNotifications: true,
+            emailDigest: false,
+        };
         const saved = localStorage.getItem('sassy_notifications');
-        if (saved) {
-            try {
-                setConfig(JSON.parse(saved));
-            } catch (e) {
-                console.error("Failed to parse notifications config", e);
-            }
+        if (!saved) {
+            return fallback;
         }
-    }, []);
+        try {
+            return { ...fallback, ...JSON.parse(saved) };
+        } catch (e) {
+            console.error("Failed to parse notifications config", e);
+            return fallback;
+        }
+    });
 
     const toggle = (key) => {
         const newConfig = { ...config, [key]: !config[key] };

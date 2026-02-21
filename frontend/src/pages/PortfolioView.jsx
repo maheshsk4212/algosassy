@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { PieChart as PieIcon, Maximize2, Layers, AlertTriangle } from 'lucide-react';
+import { apiUrl } from '../config/api';
 import './PortfolioView.css';
 
 const PIE_COLORS = ['#3B82F6', '#8B5CF6', '#F59E0B', '#10B981', '#14B8A6', '#F43F5E', '#A855F7'];
@@ -15,7 +16,7 @@ export const PortfolioView = () => {
     React.useEffect(() => {
         const fetchPositions = async () => {
             try {
-                const res = await fetch('http://localhost:8000/api/v1/dashboard/positions');
+                const res = await fetch(apiUrl('/api/v1/dashboard/positions'));
                 const data = await res.json();
 
                 if (data && data.net && data.net.length > 0) {

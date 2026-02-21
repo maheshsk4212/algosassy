@@ -3,6 +3,7 @@ import { Lock, TrendingDown, AlertTriangle, Zap } from 'lucide-react';
 import { StatefulToggle } from '../components/shared/StatefulToggle';
 import { StatusBadge } from '../components/shared/StatusBadge';
 import { ResponsiveContainer, AreaChart, Area } from 'recharts';
+import { apiUrl } from '../config/api';
 import './Strategies.css';
 
 /** Mini sparkline for per-strategy 7-day equity */
@@ -38,7 +39,7 @@ const MiniSparkline = ({ data, positive }) => {
 };
 
 const StrategyCard = ({ strategy }) => {
-    const handleToggle = async (newState) => {
+    const handleToggle = async () => {
         await new Promise(r => setTimeout(r, 600));
     };
 
@@ -127,8 +128,8 @@ export const StrategyPanel = () => {
         const fetchStrats = async () => {
             try {
                 const [stratRes, govRes] = await Promise.all([
-                    fetch('http://localhost:8000/api/v1/dashboard/strategies'),
-                    fetch('http://localhost:8000/api/v1/governance/status'),
+                    fetch(apiUrl('/api/v1/dashboard/strategies')),
+                    fetch(apiUrl('/api/v1/governance/status')),
                 ]);
                 const data = await stratRes.json();
                 const gov = await govRes.json();

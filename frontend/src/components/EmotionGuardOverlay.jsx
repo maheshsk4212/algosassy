@@ -8,7 +8,9 @@ export const EmotionGuardOverlay = ({ isTriggered, triggerReason, cooldownSecond
     useEffect(() => {
         if (!isTriggered) return;
 
-        setTimeLeft(cooldownSeconds);
+        const resetTimer = setTimeout(() => {
+            setTimeLeft(cooldownSeconds);
+        }, 0);
         const timer = setInterval(() => {
             setTimeLeft((prev) => {
                 if (prev <= 1) {
@@ -20,8 +22,11 @@ export const EmotionGuardOverlay = ({ isTriggered, triggerReason, cooldownSecond
             });
         }, 1000);
 
-        return () => clearInterval(timer);
-    }, [isTriggered, cooldownSeconds]);
+        return () => {
+            clearTimeout(resetTimer);
+            clearInterval(timer);
+        };
+    }, [isTriggered, cooldownSeconds, onCooldownComplete]);
 
     if (!isTriggered) return null;
 

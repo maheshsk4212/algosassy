@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Settings, Shield, Bell, Monitor, Database, Save, RotateCcw, CheckCircle2, Sun, Moon, Layers } from 'lucide-react';
 import { useTheme } from '../hooks/useTheme';
 import { NotificationSettings } from '../components/shared/NotificationSettings';
+import { getAdminToken, setAdminToken } from '../config/admin';
 import './SettingsPage.css';
 
 const THEMES = [
@@ -40,6 +41,7 @@ export const SettingsPage = () => {
         emailDigest: false,
         emotionGuardCooldown: '300',
         killSwitchDoubleConfirm: true,
+        adminApiToken: getAdminToken(),
         autoReconcile: true,
         reconcileIntervalSec: '5',
         dataRetentionDays: '90',
@@ -47,6 +49,9 @@ export const SettingsPage = () => {
 
     const update = (key, value) => {
         setConfig(prev => ({ ...prev, [key]: value }));
+        if (key === 'adminApiToken') {
+            setAdminToken(value);
+        }
         setSaved(false);
     };
 
@@ -60,8 +65,10 @@ export const SettingsPage = () => {
             renderFPS: '4', bufferMs: '250', maxDOMOrders: '50',
             alertSound: true, desktopNotifications: true, emailDigest: false,
             emotionGuardCooldown: '300', killSwitchDoubleConfirm: true,
+            adminApiToken: '',
             autoReconcile: true, reconcileIntervalSec: '5', dataRetentionDays: '90',
         });
+        setAdminToken('');
         setTheme('dark-glass');
         setSaved(false);
     };
@@ -142,6 +149,16 @@ export const SettingsPage = () => {
                             <input className="ui-input" type="number" value={config.emotionGuardCooldown}
                                 onChange={e => update('emotionGuardCooldown', e.target.value)} />
                         </div>
+                        <div className="form-group">
+                            <label>Admin API Token (for kill-switch/audit)</label>
+                            <input
+                                className="ui-input"
+                                type="password"
+                                autoComplete="off"
+                                value={config.adminApiToken}
+                                onChange={e => update('adminApiToken', e.target.value)}
+                            />
+                        </div>
                         <ToggleRow label="Kill Switch Double Confirm (Mobile)" checked={config.killSwitchDoubleConfirm} onChange={v => update('killSwitchDoubleConfirm', v)} />
                     </div>
                 </div>
@@ -172,7 +189,19 @@ export const SettingsPage = () => {
 const ToggleRow = ({ label, checked, onChange }) => (
     <div className="toggle-row">
         <span className="toggle-label">{label}</span>
-        <div className={`toggle-switch ${checked ? 'on' : ''}`} onClick={() => onChange(!checked)}>
+        <div
+            className={`toggle-switch ${checked ? 'on' : ''}`}
+            onClick={() => onChange(!checked)}
+            role="switch"
+            aria-checked={checked}
+            tabIndex={0}
+            onKeyDown={(event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    onChange(!checked);
+                }
+            }}
+        >
             <div className="toggle-knob"></div>
         </div>
     </div>

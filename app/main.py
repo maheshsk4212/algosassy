@@ -22,13 +22,14 @@ from app.services.order_cache import shared_order_cache
 from app.services.idempotency_manager import idempotency_manager
 from app.services.alert_manager import alert_manager
 from app.services.audit_reporter import audit_reporter
+from app.services.governance_guard import governance_guard
 from app.core.metrics import (
     router as metrics_router, TICK_QUEUE_DEPTH, STRATEGY_QUEUE_DEPTH, 
     AVAILABLE_CAPITAL, UNREALIZED_PNL, SYSTEM_STATE_GAUGE
 )
 from app.core.logging_config import setup_async_logging
 
-from app.routers import auth, protected, health, dashboard, governance, audit
+from app.routers import auth, protected, health, dashboard, governance, audit, backtest
 
 # Ensure tables are created (useful for dev/sqlite without migrations)
 Base.metadata.create_all(bind=engine)
@@ -74,6 +75,7 @@ async def lifespan(app: FastAPI):
     if not config.KITE_API_KEY:
         logger.warning("KITE_API_KEY missing from environment variables.")
     init_kite_service(api_key=config.KITE_API_KEY)
+    execution_engine.use_live_broker()
     
     # Startup validation
     db = SessionLocal()
@@ -149,9 +151,20 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="Algo-Sassy API", lifespan=lifespan)
 
 from fastapi.middleware.cors import CORSMiddleware
+
+allowed_origins = {
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+}
+if config.FRONTEND_URL:
+    allowed_origins.add(config.FRONTEND_URL)
+allowed_origins.update(config.CORS_ALLOWED_ORIGINS)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:3000"],
+    allow_origins=sorted(allowed_origins),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -163,6 +176,7 @@ app.include_router(health.router, prefix="/api/v1")
 app.include_router(dashboard.router, prefix="/api/v1")
 app.include_router(governance.router, prefix="/api/v1")
 app.include_router(audit.router, prefix="/api/v1")
+app.include_router(backtest.router, prefix="/api/v1")
 app.include_router(metrics_router)  # Phase 6 Metrics exposed on /metrics
 
 @app.get("/")

@@ -1,20 +1,20 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Activity, ZapOff, Zap, Clock, TrendingUp } from 'lucide-react';
 import { StatusBadge } from '../components/shared/StatusBadge';
+import { apiUrl } from '../config/api';
 import './LiveExecution.css';
 
 export const LiveExecution = () => {
     const [orders, setOrders] = useState([]);
     const [cpuWarning, setCpuWarning] = useState(false);
     const [summary, setSummary] = useState({ avgLatency: null, avgSlippage: null, totalToday: 0 });
-    const eventBufferRef = useRef([]);
     const burstCountRef = useRef(0);
     const burstTimerRef = useRef(null);
 
     useEffect(() => {
         const fetchOrders = async () => {
             try {
-                const res = await fetch('http://localhost:8000/api/v1/dashboard/orders');
+                const res = await fetch(apiUrl('/api/v1/dashboard/orders'));
                 const data = await res.json();
                 if (Array.isArray(data)) {
                     const parsedOrders = data.map(o => ({

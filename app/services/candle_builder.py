@@ -2,6 +2,7 @@ import logging
 from collections import deque
 from datetime import datetime, timezone
 import threading
+import queue
 from typing import Dict
 
 from app.models.tick_model import TickModel

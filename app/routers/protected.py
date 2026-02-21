@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from app.state_manager import state_manager, SystemState
 from app.core.event_bus import event_bus, EventType
+from app.core.security import require_admin_token
 
 router = APIRouter(prefix="/protected", tags=["Protected Actions"])
 
@@ -23,7 +24,7 @@ async def status_check():
     """Unprotected route to check the current system state."""
     return {"state": state_manager.get_state().name}
 
-@router.post("/kill-switch", dependencies=[Depends(require_ready_state)])
+@router.post("/kill-switch", dependencies=[Depends(require_ready_state), Depends(require_admin_token)])
 async def trigger_kill_switch():
     """
     Manual emergency trigger from the UI Sidebar.

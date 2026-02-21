@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Lock, Loader2 } from 'lucide-react';
 
 /**
@@ -18,6 +18,19 @@ export const FrictionAction = ({
     const [stage, setStage] = useState('idle'); // idle -> confirming -> executing -> done
     const [timeLeft, setTimeLeft] = useState(delayMs / 1000);
 
+    const executeAction = useCallback(async () => {
+        setStage('executing');
+        try {
+            await onAction();
+            setStage('done');
+            // Reset after a short delay
+            setTimeout(() => setStage('idle'), 2000);
+        } catch (e) {
+            console.error(e);
+            setStage('idle');
+        }
+    }, [onAction]);
+
     useEffect(() => {
         let timer;
         if (stage === 'confirming') {
@@ -33,7 +46,7 @@ export const FrictionAction = ({
             }, 1000);
         }
         return () => clearInterval(timer);
-    }, [stage]);
+    }, [stage, executeAction]);
 
     const initiateAction = () => {
         if (requireConfirm) {
@@ -47,19 +60,6 @@ export const FrictionAction = ({
     const cancelAction = () => {
         setStage('idle');
         setTimeLeft(delayMs / 1000);
-    };
-
-    const executeAction = async () => {
-        setStage('executing');
-        try {
-            await onAction();
-            setStage('done');
-            // Reset after a short delay
-            setTimeout(() => setStage('idle'), 2000);
-        } catch (e) {
-            console.error(e);
-            setStage('idle');
-        }
     };
 
     if (stage === 'confirming') {

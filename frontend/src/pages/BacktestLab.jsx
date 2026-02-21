@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, ReferenceLine } from 'recharts';
 import { FlaskConical, Play, Save, Settings2, ShieldAlert, Loader2, CheckCircle, TrendingDown, TrendingUp, BarChart2, Target } from 'lucide-react';
+import { apiUrl } from '../config/api';
 import './BacktestLab.css';
 
 const StatBox = ({ label, value, type, large, muted }) => (
@@ -17,6 +18,8 @@ export const BacktestLab = () => {
     const [progress, setProgress] = useState(0);
     const [simData, setSimData] = useState([]);
     const [strategies, setStrategies] = useState([]);
+    const [backtestEnabled, setBacktestEnabled] = useState(true);
+    const [backtestMessage, setBacktestMessage] = useState('');
     const [config, setConfig] = useState({
         strategy: '',
         timeRange: 'ytd',
@@ -27,10 +30,20 @@ export const BacktestLab = () => {
 
     // Load strategies from backend
     useEffect(() => {
-        const fetchStrategies = async () => {
+        const loadInitialData = async () => {
             try {
-                const res = await fetch('http://localhost:8000/api/v1/dashboard/strategies');
-                const data = await res.json();
+                const [strategiesRes, statusRes] = await Promise.all([
+                    fetch(apiUrl('/api/v1/dashboard/strategies')),
+                    fetch(apiUrl('/api/v1/backtest/status')),
+                ]);
+                const data = await strategiesRes.json();
+                const statusData = await statusRes.json();
+
+                setBacktestEnabled(Boolean(statusData?.enabled));
+                if (!statusData?.enabled) {
+                    setBacktestMessage('Backtest API is disabled on this server.');
+                }
+
                 if (Array.isArray(data) && data.length > 0) {
                     setStrategies(data);
                     setConfig(prev => ({ ...prev, strategy: data[0].name }));
@@ -38,13 +51,19 @@ export const BacktestLab = () => {
             } catch {
                 // Backend offline — show empty state gracefully
                 setStrategies([]);
+                setBacktestEnabled(false);
+                setBacktestMessage('Backtest services are currently unavailable.');
             }
         };
-        fetchStrategies();
+        loadInitialData();
     }, []);
 
+    const update = (key, value) => {
+        setConfig(prev => ({ ...prev, [key]: value }));
+    };
+
     const runSimulation = async () => {
-        if (isRunning) return;
+        if (isRunning || !backtestEnabled) return;
         setIsRunning(true);
         setHasRun(false);
         setProgress(0);
@@ -61,7 +80,7 @@ export const BacktestLab = () => {
 
         try {
             // Call the real backtest coordinator API
-            const res = await fetch('http://localhost:8000/api/v1/backtest/run', {
+            const res = await fetch(apiUrl('/api/v1/backtest/run'), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -91,8 +110,12 @@ export const BacktestLab = () => {
                 });
                 setHasRun(true);
             } else {
+                if (res.status === 503) {
+                    setBacktestEnabled(false);
+                    setBacktestMessage('Backtest API is disabled on this server.');
+                }
                 // Fallback: use equity snapshot from overview as a demo
-                const fallback = await fetch('http://localhost:8000/api/v1/dashboard/overview');
+                const fallback = await fetch(apiUrl('/api/v1/dashboard/overview'));
                 const data = await fallback.json();
                 setSimData(data.equity_curve || []);
                 setSimStats(null); // Don't show fake stats — show "no result" state
@@ -109,7 +132,7 @@ export const BacktestLab = () => {
         if (!hasRun || isSaving) return;
         setIsSaving(true);
         try {
-            await fetch('http://localhost:8000/api/v1/backtest/save', {
+            await fetch(apiUrl('/api/v1/backtest/save'), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ strategy: config.strategy, stats: simStats, curve: simData })
@@ -141,7 +164,7 @@ export const BacktestLab = () => {
                     <button
                         className={`lab-btn lab-btn-primary ${isRunning ? 'lab-btn-running' : ''}`}
                         onClick={runSimulation}
-                        disabled={isRunning}
+                        disabled={isRunning || !backtestEnabled}
                     >
                         {isRunning ? (
                             <><Loader2 size={15} className="spin-icon" /> Simulating...</>
@@ -156,7 +179,10 @@ export const BacktestLab = () => {
 
             <div className="lab-warning-banner">
                 <ShieldAlert size={15} />
-                <span><strong>Engine Enforced:</strong> Instant-fill shortcuts and risk engine bypasses are disabled. Simulating against live risk parameters.</span>
+                <span>
+                    <strong>Engine Enforced:</strong> Instant-fill shortcuts and risk engine bypasses are disabled.
+                    {backtestMessage ? ` ${backtestMessage}` : ' Simulating against live risk parameters.'}
+                </span>
             </div>
 
             <div className="lab-layout">
@@ -236,6 +262,17 @@ export const BacktestLab = () => {
                         <div
                             className={`toggle-switch ${config.partialFills ? 'on' : ''}`}
                             onClick={() => update('partialFills', !config.partialFills)}
+                            role="switch"
+                            aria-checked={config.partialFills}
+                            aria-disabled={isRunning}
+                            tabIndex={isRunning ? -1 : 0}
+                            onKeyDown={(event) => {
+                                if (isRunning) return;
+                                if (event.key === 'Enter' || event.key === ' ') {
+                                    event.preventDefault();
+                                    update('partialFills', !config.partialFills);
+                                }
+                            }}
                         >
                             <div className="toggle-knob"></div>
                         </div>

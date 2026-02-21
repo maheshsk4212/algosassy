@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import { ShieldAlert, Check } from 'lucide-react';
 
 /**
@@ -61,6 +61,19 @@ export const SwipeToLiquidate = () => {
             className="w-full max-w-sm bg-glass-bg border border-alert relative overflow-hidden rounded-full h-16 flex items-center justify-center touch-none select-none"
             onTouchMove={handleTouchMove}
             onTouchEnd={handleTouchEnd}
+            role="slider"
+            aria-label="Swipe to liquidate positions"
+            aria-valuemin={0}
+            aria-valuemax={maxDrag}
+            aria-valuenow={dragDistance}
+            tabIndex={processing ? -1 : 0}
+            onKeyDown={(event) => {
+                if (processing || liquidated) return;
+                if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    triggerLiquidation();
+                }
+            }}
             ref={sliderRef}
         >
             <div className="absolute inset-0 flex items-center justify-center opacity-50 z-0 pr-10 pointer-events-none">

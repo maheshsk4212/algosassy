@@ -5,7 +5,7 @@ import './Strategies.css';
 
 const generateMiniCurve = (trend) => {
     let base = 100;
-    return Array.from({ length: 20 }, (_, i) => {
+    return Array.from({ length: 20 }, () => {
         base += (Math.random() - (trend === 'down' ? 0.6 : 0.4)) * 5;
         return { val: base };
     });
@@ -147,6 +147,17 @@ const StrategyCard = ({ strat, onToggle, onOverride }) => {
                     <div
                         className={`toggle-switch ${strat.isActive ? 'on' : 'off'} ${isLocked ? 'disabled' : ''}`}
                         onClick={onToggle}
+                        role="switch"
+                        aria-checked={strat.isActive}
+                        aria-disabled={isLocked}
+                        tabIndex={isLocked ? -1 : 0}
+                        onKeyDown={(event) => {
+                            if (isLocked) return;
+                            if (event.key === 'Enter' || event.key === ' ') {
+                                event.preventDefault();
+                                onToggle();
+                            }
+                        }}
                     >
                         <div className="toggle-knob"></div>
                     </div>

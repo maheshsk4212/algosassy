@@ -14,6 +14,8 @@ import {
   Zap
 } from 'lucide-react';
 import './App.css';
+import { apiUrl } from './config/api';
+import { withAdminHeaders } from './config/admin';
 
 import { OverviewDashboard } from './pages/OverviewDashboard';
 import { RiskControlPanel } from './pages/RiskControlPanel';
@@ -41,8 +43,8 @@ const GlobalRiskBanner = () => {
     const fetchBannerData = async () => {
       try {
         const [govRes, stateRes] = await Promise.all([
-          fetch('http://localhost:8000/api/v1/governance/status'),
-          fetch('http://localhost:8000/api/v1/protected/status')
+          fetch(apiUrl('/api/v1/governance/status')),
+          fetch(apiUrl('/api/v1/protected/status'))
         ]);
         const gov = await govRes.json();
         const state = await stateRes.json();
@@ -56,7 +58,7 @@ const GlobalRiskBanner = () => {
           drawdown_percent: dd,
         });
         setLastUpdated(new Date().toLocaleTimeString('en-IN', { hour12: false }));
-      } catch (e) {
+      } catch {
         setBannerData(prev => ({ ...prev, trading_status: 'OFFLINE' }));
       }
     };
@@ -152,7 +154,7 @@ const KiteSessionStatus = () => {
   React.useEffect(() => {
     const check = async () => {
       try {
-        const res = await fetch('http://localhost:8000/api/v1/protected/status');
+        const res = await fetch(apiUrl('/api/v1/protected/status'));
         if (!res.ok) { setStatus('disconnected'); return; }
         const data = await res.json();
         setStatus(data.state === 'READY' ? 'ready' : 'disconnected');
@@ -178,7 +180,7 @@ const KiteSessionStatus = () => {
     return (
       <a
         className="kite-login-btn"
-        href="http://localhost:8000/api/v1/auth/login"
+        href={apiUrl('/api/v1/auth/login')}
         title="Login with your Zerodha account to start live trading"
       >
         <Link2 size={13} />
@@ -205,16 +207,17 @@ const EmergencyGuardButton = () => {
 
     setIsLiquidating(true);
     try {
-      const res = await fetch('http://localhost:8000/api/v1/protected/kill-switch', {
-        method: 'POST'
-      });
+      const res = await fetch(
+        apiUrl('/api/v1/protected/kill-switch'),
+        withAdminHeaders({ method: 'POST' })
+      );
       if (!res.ok) {
         const data = await res.json();
         alert(`Failed to trigger kill switch: ${data.detail || 'Unknown error'}`);
       } else {
         alert("Emergency Liquidation Protocol Initiated.");
       }
-    } catch (e) {
+    } catch {
       alert("Network error while triggering emergency guard.");
     } finally {
       setIsLiquidating(false);

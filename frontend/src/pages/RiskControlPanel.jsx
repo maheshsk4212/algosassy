@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ShieldAlert, AlertTriangle, ArrowRight, Loader2, CheckCircle2 } from 'lucide-react';
 import { FrictionAction } from '../components/shared/FrictionAction';
 import { NotificationSettings } from '../components/shared/NotificationSettings';
+import { apiUrl } from '../config/api';
 import './RiskControl.css';
 
 export const RiskControlPanel = () => {
@@ -28,8 +29,8 @@ export const RiskControlPanel = () => {
         const fetchRiskParams = async () => {
             try {
                 const [riskRes, govRes] = await Promise.all([
-                    fetch('http://localhost:8000/api/v1/dashboard/risk-params'),
-                    fetch('http://localhost:8000/api/v1/governance/status'),
+                    fetch(apiUrl('/api/v1/dashboard/risk-params')),
+                    fetch(apiUrl('/api/v1/governance/status')),
                 ]);
                 const risk = await riskRes.json();
                 const gov = await govRes.json();
@@ -42,13 +43,16 @@ export const RiskControlPanel = () => {
                 });
 
                 // Only initialize if not already edited
-                if (params.baseRiskPercent === 1.5) {
-                    setParams(prev => ({
+                setParams(prev => {
+                    if (prev.baseRiskPercent !== 1.5) {
+                        return prev;
+                    }
+                    return {
                         ...prev,
                         baseRiskPercent: parseFloat(((risk.base_risk_percent || 0) * 100).toFixed(2)),
                         monthlyLossCap: risk.max_drawdown_percent || 5.0
-                    }));
-                }
+                    };
+                });
             } catch (err) {
                 console.error("Failed to fetch risk params:", err);
             }
@@ -61,9 +65,9 @@ export const RiskControlPanel = () => {
     const handleSimulate = async () => {
         setProjecting(true);
         setProjectionResult(null);
-        setAppliedSuccess(false);
+            setAppliedSuccess(false);
         try {
-            const res = await fetch('http://localhost:8000/api/v1/governance/simulate', {
+            const res = await fetch(apiUrl('/api/v1/governance/simulate'), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -88,7 +92,7 @@ export const RiskControlPanel = () => {
     const handleApply = async () => {
         try {
             await Promise.all([
-                fetch('http://localhost:8000/api/v1/dashboard/risk-params', {
+                fetch(apiUrl('/api/v1/dashboard/risk-params'), {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -96,7 +100,7 @@ export const RiskControlPanel = () => {
                         max_drawdown_percent: params.monthlyLossCap
                     })
                 }),
-                fetch('http://localhost:8000/api/v1/governance/settings', {
+                fetch(apiUrl('/api/v1/governance/settings'), {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({

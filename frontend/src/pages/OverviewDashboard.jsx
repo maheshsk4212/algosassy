@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { TrendingDown, TrendingUp, Activity, Clock, ArrowUpRight, ArrowDownRight, Zap, AlertTriangle } from 'lucide-react';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid, ReferenceLine } from 'recharts';
+import { apiUrl, WS_BASE_URL } from '../config/api';
 import './OverviewDashboard.css';
 
 /**
@@ -51,7 +52,7 @@ export const OverviewDashboard = () => {
     });
 
     useEffect(() => {
-        fetch('http://localhost:8000/api/v1/dashboard/overview')
+        fetch(apiUrl('/api/v1/dashboard/overview'))
             .then(res => res.json())
             .then(data => {
                 const eq = data.current_equity;
@@ -83,7 +84,7 @@ export const OverviewDashboard = () => {
             .catch(err => console.error("Error fetching overview:", err));
 
         // WebSocket 4FPS live feed
-        const ws = new WebSocket('ws://localhost:8000/api/v1/dashboard/ws/stream');
+        const ws = new WebSocket(`${WS_BASE_URL}/api/v1/dashboard/ws/stream`);
         let buffer = null;
         let lastFlush = Date.now();
         let frameId;
@@ -92,7 +93,9 @@ export const OverviewDashboard = () => {
             try {
                 const data = JSON.parse(event.data);
                 if (data.type === 'market_data') buffer = data;
-            } catch (e) { }
+            } catch {
+                // Ignore malformed websocket frames and continue streaming.
+            }
         };
 
         const flush = () => {
@@ -115,9 +118,6 @@ export const OverviewDashboard = () => {
 
         return () => { ws.close(); cancelAnimationFrame(frameId); };
     }, []);
-
-    const drawdownColor = metrics.drawdownRaw > 10 ? 'var(--color-alert)' :
-        metrics.drawdownRaw > 5 ? 'var(--color-warning)' : 'var(--accent-amber)';
 
     return (
         <div className="page-container">

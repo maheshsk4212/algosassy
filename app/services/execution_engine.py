@@ -5,7 +5,7 @@ from typing import Optional
 from app.models.risk_decision import RiskDecision
 from app.services.symbol_lock import symbol_lock_manager
 from app.services.idempotency_manager import idempotency_manager
-from app.services.kite_service import kite_service
+from app.services.kite_service import get_kite_service
 from app.core.event_bus import event_bus, EventType
 from app.services.mtm_engine import mtm_engine
 
@@ -18,10 +18,26 @@ class ExecutionEngine:
     """
     def __init__(self, max_retries: int = 3):
         self.max_retries = max_retries
-        self._broker = kite_service # Default to Live interface
-        
+        self._broker = None
+        self._use_live_broker = True
+
         # Subscribe to emergency liquidation events
         event_bus.subscribe(EventType.EMERGENCY_LIQUIDATE, self._handle_emergency_liquidation)
+
+    def use_live_broker(self):
+        """Resets any injected broker and binds to live broker lazily."""
+        self._use_live_broker = True
+        self._broker = None
+
+    def _resolve_broker(self):
+        if self._broker is not None:
+            return self._broker
+
+        if not self._use_live_broker:
+            raise RuntimeError("No broker configured for execution engine.")
+
+        self._broker = get_kite_service()
+        return self._broker
 
     def _handle_emergency_liquidation(self, data: dict):
         """
@@ -30,13 +46,18 @@ class ExecutionEngine:
         """
         reason = data.get("reason", "Unknown Emergency")
         logger.critical(f"🛑 EXECUTION ENGINE: LIQUIDATING ALL POSITIONS. Reason: {reason}")
-        
-        # We fire and forget this as it might take time, but it's a critical block
-        asyncio.create_task(self._broker.exit_all_positions())
+
+        try:
+            broker = self._resolve_broker()
+            # We fire and forget this as it might take time, but it's a critical block
+            asyncio.create_task(broker.exit_all_positions())
+        except Exception as e:
+            logger.error(f"Emergency liquidation skipped: broker unavailable ({e})")
 
     def set_broker(self, broker_instance):
         """Allows injecting the mocked backtester broker."""
         self._broker = broker_instance
+        self._use_live_broker = False
         logger.info(f"Execution Engine broker injected: {broker_instance.__class__.__name__}")
 
     async def execute_decision(self, decision: RiskDecision):
@@ -90,10 +111,11 @@ class ExecutionEngine:
         In real environments, this would catch specific exceptions (Circuit Limit, Freeze limits)
         and implement offset adjustments or slippage increases up to max_retries.
         """
+        broker = self._resolve_broker()
         for attempt in range(1, self.max_retries + 1):
             try:
                 # INTERFACE CALL (Kite Service or Backtest Broker)
-                success = await self._broker.place_order(intent, assigned_position_size)
+                success = await broker.place_order(intent, assigned_position_size)
                 
                 if success:
                     return True 

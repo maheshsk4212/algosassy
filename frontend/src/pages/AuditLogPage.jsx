@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { FileText, RefreshCw, Filter, Download, Search, AlertTriangle, Activity, ShieldAlert, Info, Zap, Trash2 } from 'lucide-react';
+import { apiUrl } from '../config/api';
 import './AuditLog.css';
 
 const CATEGORY_ICONS = {
@@ -28,7 +29,7 @@ export const AuditLogPage = () => {
 
     const fetchLogs = useCallback(async () => {
         try {
-            const res = await fetch('http://localhost:8000/api/v1/audit/logs');
+            const res = await fetch(apiUrl('/api/v1/audit/logs'));
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
             const data = await res.json();
             setLogs(data.events || []);

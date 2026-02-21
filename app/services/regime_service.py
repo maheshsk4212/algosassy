@@ -38,14 +38,14 @@ class RegimeService:
         # For this phase, we use static thresholds based on typical asset behavior.
         # Assume an asset trading at 55000 with a normal ATR of 200.
         
-        # If ATR spikes heavily (e.g. > 500 for BTC), we are in High Vol.
-        if atr > 500:
-            self.current_regime = RegimeType.HIGH_VOLATILITY
-            return 2.0  # Halves the position size since size is divided by VolMultiplier
-            
-        elif atr > 1000:
+        if atr > 1000:
             self.current_regime = RegimeType.CRASH_MODE
             return 3.0  # Slash size by 66%
+            
+        # If ATR spikes heavily (e.g. > 500 for BTC), we are in High Vol.
+        elif atr > 500:
+            self.current_regime = RegimeType.HIGH_VOLATILITY
+            return 2.0  # Halves the position size since size is divided by VolMultiplier
             
         elif atr < 100:
             self.current_regime = RegimeType.LOW_VOLATILITY

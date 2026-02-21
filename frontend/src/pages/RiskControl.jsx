@@ -1,12 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ShieldAlert, Info, AlertTriangle, CheckCircle2, Clock } from 'lucide-react';
+import { apiUrl } from '../config/api';
 import './RiskControl.css';
-
-const displayParameters = [
-    { label: 'Volatility Adjusted Risk', value: '0.85%', status: 'nominal' },
-    { label: 'Drift Adjusted Risk', value: '0.60%', status: 'warning', note: 'Reduced by 25% due to active drift' },
-    { label: 'Regime Adjusted Risk', value: '0.75%', status: 'nominal' },
-];
 
 const RiskControl = () => {
     const [params, setParams] = useState({
@@ -27,7 +22,7 @@ const RiskControl = () => {
 
     useEffect(() => {
         // Fetch actual system state on load
-        fetch('http://localhost:8000/api/v1/dashboard/risk-params')
+        fetch(apiUrl('/api/v1/dashboard/risk-params'))
             .then(res => res.json())
             .then(data => {
                 setLiveGovernance({
@@ -46,20 +41,31 @@ const RiskControl = () => {
     }, []);
 
     const handleApply = () => {
+        if (!pendingParams) {
+            setPendingParams({ ...params });
+        }
         setIsConfirming(true);
         setCountdown(5);
     };
 
     useEffect(() => {
-        let timer;
         if (isConfirming && countdown > 0) {
-            timer = setTimeout(() => setCountdown(c => c - 1), 1000);
-        } else if (isConfirming && countdown === 0) {
-            setParams(pendingParams);
-            setIsConfirming(false);
-            setPendingParams(null);
+            const timer = setTimeout(() => setCountdown(c => c - 1), 1000);
+            return () => clearTimeout(timer);
         }
-        return () => clearTimeout(timer);
+
+        if (isConfirming && countdown === 0) {
+            const timer = setTimeout(() => {
+                if (pendingParams) {
+                    setParams(pendingParams);
+                }
+                setIsConfirming(false);
+                setPendingParams(null);
+            }, 0);
+            return () => clearTimeout(timer);
+        }
+
+        return undefined;
     }, [isConfirming, countdown, pendingParams]);
 
     const handleChange = (key, value) => {

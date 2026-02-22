@@ -124,6 +124,8 @@ async def lifespan(app: FastAPI):
             strategy=EMACrossoverStrategy(short_period=9, long_period=21, risk_percent=1.0),
         )
     logger.info(f"Auto strategies registered for symbols: {symbols}")
+    websocket_manager.subscribe(symbols)
+    logger.info(f"Prepared WebSocket subscriptions for symbols: {symbols}")
 
     if state_manager.get_state() == SystemState.READY:
         logger.info("System READY. Initializing WebSocket Producer...")

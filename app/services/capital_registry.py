@@ -95,5 +95,10 @@ class CapitalRegistry:
         res_id = data.get("reservation_id")
         if res_id:
             self.confirm_reservation(res_id)
+        release_amount = float(data.get("capital_release") or 0.0)
+        if release_amount > 0:
+            with self._lock:
+                self.used_capital = max(self.used_capital - release_amount, 0.0)
+                logger.info(f"Released deployed capital {release_amount:.2f} after exit fill.")
 
 capital_registry = CapitalRegistry()

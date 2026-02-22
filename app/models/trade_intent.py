@@ -22,6 +22,8 @@ class TradeIntent(BaseModel):
     entry_price: float
     stop_loss: float
     target: float
+    is_exit: bool = False
+    exit_reason: str = ""
     # position_size and risk_per_trade are removed. RiskEngine owns this.
     
     timestamp: datetime = Field(default_factory=datetime.utcnow)

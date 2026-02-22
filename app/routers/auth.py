@@ -7,8 +7,11 @@ from app.core.database import get_db
 from app.services.kite_service import get_kite_service
 from app.services.auth_manager import auth_manager
 from app.services.capital_registry import capital_registry
+from app.services.websocket_manager import websocket_manager
+from app.services.strategy_registry import strategy_registry
 from app.services.event_logger import log_event
 from app.config import config
+from app.state_manager import state_manager, SystemState
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/auth", tags=["Authentication"])
@@ -47,6 +50,15 @@ async def callback(request_token: str = Query(..., description="The request toke
                     log_event("system", f"Capital synced from Zerodha: ₹{equity_available:,.2f}")
             except Exception as margin_err:
                 logger.warning(f"Failed to sync margins: {margin_err}. Keeping default capital.")
+
+            # After login from any device, wire subscriptions and start live stream immediately.
+            symbols = strategy_registry.get_all_registered_symbols() or (config.AUTOTRADE_SYMBOLS or [256265])
+            try:
+                websocket_manager.subscribe(symbols)
+                if state_manager.get_state() == SystemState.READY and not websocket_manager.is_connected:
+                    websocket_manager.start_stream()
+            except Exception as ws_err:
+                logger.warning(f"WebSocket auto-start after login failed: {ws_err}")
             return RedirectResponse(url=f"{config.FRONTEND_URL}/")
         else:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication failed.")

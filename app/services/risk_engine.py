@@ -1,7 +1,7 @@
 import logging
 from typing import Optional
 
-from app.models.trade_intent import TradeIntent
+from app.models.trade_intent import TradeIntent, TradeDirection
 from app.models.risk_decision import RiskDecision
 from app.state_manager import state_manager, SystemState
 from app.services.capital_registry import capital_registry
@@ -32,6 +32,32 @@ class RiskEngine:
         # 2. Phase 5: Per-Symbol Lock Verification
         if symbol_lock_manager.get_state(intent.symbol) != SymbolState.NORMAL:
             return self._reject(intent, f"Symbol {intent.symbol} is currently locked or in execution.")
+
+        # Exit orders must always be allowed to de-risk if we have an open position.
+        # They bypass entry sizing/capital checks and simply flatten the symbol position.
+        if intent.is_exit:
+            if intent.direction != TradeDirection.SELL:
+                return self._reject(intent, "Exit intents must use SELL direction.")
+
+            open_qty = mtm_engine.get_position_size(intent.symbol)
+            if open_qty <= 0:
+                return self._reject(intent, f"No open long position available to exit for symbol {intent.symbol}.")
+
+            if not symbol_lock_manager.acquire_execution_lock(intent.symbol):
+                return self._reject(intent, "Failed to acquire Phase 5 Symbol Lock for exit intent.")
+
+            decision = RiskDecision(
+                approved=True,
+                original_intent=intent,
+                reservation_id=None,
+                assigned_position_size=open_qty,
+            )
+            logger.info(f"Risk Engine APPROVED EXIT for {intent.strategy_name}. Symbol={intent.symbol} Qty={open_qty}")
+            return decision
+
+        # Autonomous short entries are intentionally disabled in this phase.
+        if intent.direction == TradeDirection.SELL:
+            return self._reject(intent, "Short entries are disabled. SELL is only allowed for position exits.")
 
         # 3. Emotion Guard (Phase 8) - Did we detect illegal manual trades?
         emotion_block = governance_guard.enforce_emotion_guard(intent)

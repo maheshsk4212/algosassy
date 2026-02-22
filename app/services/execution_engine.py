@@ -6,6 +6,7 @@ from app.models.risk_decision import RiskDecision
 from app.services.symbol_lock import symbol_lock_manager
 from app.services.idempotency_manager import idempotency_manager
 from app.services.kite_service import get_kite_service
+from app.services.order_cache import shared_order_cache
 from app.core.event_bus import event_bus, EventType
 from app.services.mtm_engine import mtm_engine
 
@@ -118,6 +119,8 @@ class ExecutionEngine:
                 success = await broker.place_order(intent, assigned_position_size)
                 
                 if success:
+                    # Pull fresh broker orders on the next read after any successful placement.
+                    shared_order_cache.invalidate()
                     return True 
                 
             except Exception as e:

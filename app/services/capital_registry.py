@@ -27,6 +27,7 @@ class CapitalRegistry:
         self.reservation_expiry_seconds = reservation_expiry_seconds
         
         # Self-healing hook
+        event_bus.subscribe(EventType.ORDER_SUCCESS, self._handle_order_success)
         event_bus.subscribe(EventType.ORDER_FAILED, self._handle_order_failure)
 
     def get_available_capital(self) -> float:
@@ -88,5 +89,11 @@ class CapitalRegistry:
         if res_id:
             logger.warning(f"Event ORDER_FAILED trapped. Releasing capital {res_id}")
             self.release_reservation(res_id)
+
+    def _handle_order_success(self, data: dict):
+        """Event Bus listener to confirm reservations after successful broker placement."""
+        res_id = data.get("reservation_id")
+        if res_id:
+            self.confirm_reservation(res_id)
 
 capital_registry = CapitalRegistry()

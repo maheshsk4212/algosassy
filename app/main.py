@@ -115,9 +115,15 @@ async def lifespan(app: FastAPI):
     logger.info("Starting Strategy Engine Worker thread...")
     strategy_worker.start_worker()
     
-    # Register Dummy Example Strategy for testing on NIFTY 50 (Token: 256265)
-    default_strategy = EMACrossoverStrategy(short_period=9, long_period=21, risk_percent=1.0)
-    strategy_registry.register_strategy(symbol=256265, strategy=default_strategy)
+    # Register configured autonomous strategies.
+    # Use AUTOTRADE_SYMBOLS (comma-separated instrument tokens) to control live tradable symbols.
+    symbols = config.AUTOTRADE_SYMBOLS or [256265]
+    for symbol in symbols:
+        strategy_registry.register_strategy(
+            symbol=symbol,
+            strategy=EMACrossoverStrategy(short_period=9, long_period=21, risk_percent=1.0),
+        )
+    logger.info(f"Auto strategies registered for symbols: {symbols}")
 
     if state_manager.get_state() == SystemState.READY:
         logger.info("System READY. Initializing WebSocket Producer...")

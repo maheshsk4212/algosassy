@@ -1,7 +1,7 @@
 import asyncio
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect
-from pydantic import BaseModel
-from typing import Dict, Any
+from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisconnect, status
+from pydantic import BaseModel, Field
+from typing import Dict, Any, Optional
 
 from app.services.capital_registry import capital_registry
 from app.services.mtm_engine import mtm_engine
@@ -10,9 +10,10 @@ from app.services.kite_service import get_kite_service
 from app.services.strategy_registry import strategy_registry
 from app.services.regime_service import regime_service
 from app.services.governance_guard import governance_guard
-from app.state_manager import state_manager
+from app.services.event_logger import log_event
+from app.state_manager import state_manager, SystemState
 from app.core.time_provider import time_provider
-from app.core.security import websocket_app_access_allowed
+from app.core.security import require_admin_token, websocket_app_access_allowed
 import random
 
 router = APIRouter(prefix="/dashboard", tags=["Dashboard APIs"])
@@ -104,6 +105,78 @@ async def get_overview():
 async def get_orders():
     # Use cached orders (1 sec TTL) to prevent rate limits
     return await shared_order_cache.get_orders(force_refresh=False)
+
+
+class ManualOrderRequest(BaseModel):
+    tradingsymbol: str = Field(min_length=1, max_length=64)
+    exchange: str = Field(default="NSE", min_length=2, max_length=10)
+    transaction_type: str = Field(default="BUY", min_length=3, max_length=4)
+    quantity: int = Field(gt=0, le=1000000)
+    product: str = Field(default="MIS", min_length=3, max_length=10)
+    order_type: str = Field(default="MARKET", min_length=5, max_length=10)
+    price: Optional[float] = None
+
+
+@router.post("/manual-order", dependencies=[Depends(require_admin_token)])
+async def place_manual_order(req: ManualOrderRequest):
+    """
+    Manual order endpoint for operator-driven Buy/Sell from the dashboard.
+    Protected by admin token and system READY state.
+    """
+    if state_manager.get_state() != SystemState.READY:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"Manual order blocked. System state is {state_manager.get_state().name}.",
+        )
+
+    side = (req.transaction_type or "").strip().upper()
+    if side not in {"BUY", "SELL"}:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="transaction_type must be BUY or SELL.")
+
+    order_type = (req.order_type or "").strip().upper()
+    if order_type not in {"MARKET", "LIMIT"}:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="order_type must be MARKET or LIMIT.")
+
+    if order_type == "LIMIT" and (req.price is None or req.price <= 0):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="price is required and must be > 0 for LIMIT orders.",
+        )
+
+    kite = get_kite_service()
+    if not getattr(kite._kite, "access_token", None):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Kite is not authenticated. Connect Kite account first.",
+        )
+
+    try:
+        order_id = await kite.place_manual_order(
+            exchange=req.exchange,
+            tradingsymbol=req.tradingsymbol,
+            transaction_type=side,
+            quantity=req.quantity,
+            product=req.product,
+            order_type=order_type,
+            price=req.price,
+            tag="manual_ui",
+        )
+        shared_order_cache.invalidate()
+        log_event(
+            "trade",
+            f"Manual {side} order placed: {req.exchange.upper()}:{req.tradingsymbol.upper()} qty={req.quantity} id={order_id}",
+        )
+        return {
+            "status": "success",
+            "order_id": order_id,
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Manual order failed: {e}",
+        ) from e
 
 @router.get("/positions")
 async def get_positions():

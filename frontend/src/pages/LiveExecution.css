@@ -53,6 +53,66 @@
     font-weight: 700;
 }
 
+/* ── Manual Order Ticket ─────────────────────────────────────── */
+.manual-order-ticket {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-4);
+    padding: var(--sp-5);
+}
+
+.manual-order-head h3 {
+    margin-bottom: 4px;
+}
+
+.manual-order-head p {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+
+.manual-order-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(180px, 1fr));
+    gap: var(--sp-3);
+}
+
+.manual-order-grid .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.manual-order-grid label {
+    font-size: 0.66rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+    font-weight: 700;
+}
+
+.manual-order-actions {
+    display: flex;
+    gap: var(--sp-3);
+}
+
+.manual-order-actions .btn {
+    min-width: 132px;
+}
+
+.manual-order-feedback {
+    margin: 0;
+    font-size: 0.78rem;
+    font-family: var(--font-mono);
+}
+
+.manual-order-feedback.success {
+    color: var(--color-positive);
+}
+
+.manual-order-feedback.error {
+    color: var(--color-alert);
+}
+
 /* ── Order Table ────────────────────────────────────────────── */
 .order-table {
     flex: 1;
@@ -226,6 +286,22 @@
 
     .exec-summary-value {
         font-size: 1rem;
+    }
+
+    .manual-order-ticket {
+        padding: var(--sp-4);
+    }
+
+    .manual-order-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .manual-order-actions {
+        flex-direction: column;
+    }
+
+    .manual-order-actions .btn {
+        width: 100%;
     }
 
     /* On small screens, collapse table to fewer columns */

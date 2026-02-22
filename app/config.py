@@ -14,6 +14,16 @@ def _env_csv(name: str, default: str = "") -> list[str]:
     return [item.strip().rstrip("/") for item in raw.split(",") if item.strip()]
 
 
+def _env_csv_int(name: str, default: str = "") -> list[int]:
+    values: list[int] = []
+    for item in _env_csv(name, default):
+        try:
+            values.append(int(item))
+        except ValueError:
+            continue
+    return values
+
+
 class Config:
     KITE_API_KEY = os.getenv("KITE_API_KEY", "")
     KITE_API_SECRET = os.getenv("KITE_API_SECRET", "")
@@ -26,5 +36,6 @@ class Config:
     API_DOCS_ENABLED = _env_bool("API_DOCS_ENABLED", "false")
     BACKTEST_API_ENABLED = _env_bool("BACKTEST_API_ENABLED", "true")
     BACKTEST_SAVE_DIR = os.getenv("BACKTEST_SAVE_DIR", "data/backtests")
+    AUTOTRADE_SYMBOLS = _env_csv_int("AUTOTRADE_SYMBOLS", "256265")
 
 config = Config()

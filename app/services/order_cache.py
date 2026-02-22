@@ -1,9 +1,9 @@
 import logging
 import threading
-from typing import List, Dict, Optional
+from typing import List, Dict
 
 from app.core.time_provider import time_provider
-from app.services.kite_service import kite_service  # Ensure kite_service has get_orders
+from app.services.kite_service import get_kite_service
 
 logger = logging.getLogger(__name__)
 
@@ -31,21 +31,34 @@ class SharedOrderCache:
         if not force_refresh and (now - self._last_fetch_time) < self.cache_duration:
             return self._last_orders
             
-        # 2. Synchronized Fetch (Thundering Herd Protection)
+        # 2. Synchronized Fetch Trigger (Thundering Herd Protection)
         with self._lock:
             # Re-check condition inside lock in case another thread already fetched
             if not force_refresh and (time_provider.time() - self._last_fetch_time) < self.cache_duration:
                 return self._last_orders
-                
-            try:
-                # Mocked due to no active API credentials but this is the architecture
-                # self._last_orders = await kite_service.get_orders()
-                logger.debug("Fetched fresh orders from Broker API")
-                self._last_orders = [] # Mock empty for now
-                self._last_fetch_time = time_provider.time()
-            except Exception as e:
-                logger.error(f"Failed to fetch broker orders: {e}")
-                
+
+        try:
+            kite = get_kite_service()
+            if not getattr(kite._kite, "access_token", None):
+                fresh_orders: List[Dict] = []
+            else:
+                raw_orders = await kite.get_orders()
+                fresh_orders = raw_orders if isinstance(raw_orders, list) else []
+            logger.debug(f"Fetched {len(fresh_orders)} orders from broker API")
+        except RuntimeError:
+            # Kite service may be unavailable early during startup.
+            fresh_orders = []
+        except Exception as e:
+            logger.error(f"Failed to fetch broker orders: {e}")
+            # Return stale cache if available; otherwise fallback to empty list.
+            with self._lock:
+                if self._last_orders:
+                    return self._last_orders
+            fresh_orders = []
+
+        with self._lock:
+            self._last_orders = fresh_orders
+            self._last_fetch_time = time_provider.time()
             return self._last_orders
 
     def invalidate(self):

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { TrendingDown, TrendingUp, Activity, Clock, ArrowUpRight, ArrowDownRight, Zap, AlertTriangle } from 'lucide-react';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid, ReferenceLine } from 'recharts';
 import { apiUrl, WS_BASE_URL } from '../config/api';
+import { withAppTokenQuery } from '../config/appAccess';
 import './OverviewDashboard.css';
 
 /**
@@ -84,7 +85,7 @@ export const OverviewDashboard = () => {
             .catch(err => console.error("Error fetching overview:", err));
 
         // WebSocket 4FPS live feed
-        const ws = new WebSocket(`${WS_BASE_URL}/api/v1/dashboard/ws/stream`);
+        const ws = new WebSocket(withAppTokenQuery(`${WS_BASE_URL}/api/v1/dashboard/ws/stream`));
         let buffer = null;
         let lastFlush = Date.now();
         let frameId;

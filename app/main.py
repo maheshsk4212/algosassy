@@ -1,6 +1,7 @@
 import logging
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 from app.config import config
@@ -28,6 +29,7 @@ from app.core.metrics import (
     AVAILABLE_CAPITAL, UNREALIZED_PNL, SYSTEM_STATE_GAUGE
 )
 from app.core.logging_config import setup_async_logging
+from app.core.security import resolve_app_access_token, verify_app_access_token
 
 from app.routers import auth, protected, health, dashboard, governance, audit, backtest
 
@@ -149,7 +151,13 @@ async def lifespan(app: FastAPI):
     strategy_worker.stop_worker()
     websocket_manager.stop_stream()
 
-app = FastAPI(title="Algo-Sassy API", lifespan=lifespan)
+app = FastAPI(
+    title="Algo-Sassy API",
+    lifespan=lifespan,
+    docs_url="/docs" if config.API_DOCS_ENABLED else None,
+    redoc_url="/redoc" if config.API_DOCS_ENABLED else None,
+    openapi_url="/openapi.json" if config.API_DOCS_ENABLED else None,
+)
 
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -171,6 +179,50 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+PUBLIC_PATHS = {
+    "/",
+    "/api/v1/auth/login",
+    "/api/v1/auth/callback",
+}
+
+
+def _is_protected_surface(path: str) -> bool:
+    return path.startswith("/api/v1/") or path == "/metrics"
+
+
+@app.middleware("http")
+async def security_middleware(request: Request, call_next):
+    path = request.url.path
+
+    if (
+        config.APP_ACCESS_TOKEN
+        and request.method != "OPTIONS"
+        and _is_protected_surface(path)
+        and path not in PUBLIC_PATHS
+    ):
+        token = resolve_app_access_token(
+            x_app_token=request.headers.get("x-app-token", ""),
+            authorization=request.headers.get("authorization", ""),
+            app_token=request.query_params.get("app_token", ""),
+        )
+        if not verify_app_access_token(token):
+            return JSONResponse(
+                status_code=401,
+                content={"detail": "Invalid or missing app access token."},
+            )
+
+    response = await call_next(request)
+
+    # Baseline response hardening headers.
+    response.headers.setdefault("X-Frame-Options", "DENY")
+    response.headers.setdefault("X-Content-Type-Options", "nosniff")
+    response.headers.setdefault("Referrer-Policy", "no-referrer")
+    response.headers.setdefault("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
+    response.headers.setdefault("Cross-Origin-Opener-Policy", "same-origin")
+    if request.url.scheme == "https":
+        response.headers.setdefault("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload")
+    return response
+
 app.include_router(auth.router, prefix="/api/v1")
 app.include_router(protected.router, prefix="/api/v1")
 app.include_router(health.router, prefix="/api/v1")
@@ -182,4 +234,4 @@ app.include_router(metrics_router)  # Phase 6 Metrics exposed on /metrics
 
 @app.get("/")
 def root():
-    return {"message": "Algo-Sassy Backend System", "state": state_manager.get_state().name}
+    return {"message": "Algo-Sassy Backend System"}

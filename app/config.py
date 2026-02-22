@@ -21,7 +21,9 @@ class Config:
     REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
     FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173").rstrip("/")
     CORS_ALLOWED_ORIGINS = _env_csv("CORS_ALLOWED_ORIGINS")
+    APP_ACCESS_TOKEN = os.getenv("APP_ACCESS_TOKEN", "")
     ADMIN_API_TOKEN = os.getenv("ADMIN_API_TOKEN", "")
+    API_DOCS_ENABLED = _env_bool("API_DOCS_ENABLED", "false")
     BACKTEST_API_ENABLED = _env_bool("BACKTEST_API_ENABLED", "true")
     BACKTEST_SAVE_DIR = os.getenv("BACKTEST_SAVE_DIR", "data/backtests")
 

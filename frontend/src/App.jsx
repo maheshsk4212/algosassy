@@ -21,6 +21,12 @@ import {
 import './App.css';
 import { apiUrl } from './config/api';
 import { withAdminHeaders } from './config/admin';
+import {
+  clearAppAccessToken,
+  getAccessRequiredEventName,
+  getAppAccessToken,
+  setAppAccessToken,
+} from './config/appAccess';
 
 const lazyPage = (loader, namedExport) =>
   React.lazy(async () => {
@@ -273,6 +279,21 @@ const EmergencyGuardButton = () => {
 
 function App() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
+  const [isAccessUnlocked, setIsAccessUnlocked] = React.useState(() => Boolean(getAppAccessToken()));
+  const [accessKeyInput, setAccessKeyInput] = React.useState('');
+  const [isUnlocking, setIsUnlocking] = React.useState(false);
+  const [accessError, setAccessError] = React.useState('');
+
+  React.useEffect(() => {
+    const handleAccessRequired = () => {
+      setAccessError('Access key expired or invalid. Enter it again.');
+      setAccessKeyInput('');
+      setIsAccessUnlocked(false);
+    };
+    const eventName = getAccessRequiredEventName();
+    window.addEventListener(eventName, handleAccessRequired);
+    return () => window.removeEventListener(eventName, handleAccessRequired);
+  }, []);
 
   // Session-long fatigue reduction: after 4hrs, de-saturate accents by 15%
   // This reduces cognitive fatigue without alarming the trader
@@ -291,6 +312,63 @@ function App() {
   const closeMobileMenu = () => {
     setIsMobileMenuOpen(false);
   };
+
+  const handleAccessUnlock = async (event) => {
+    event.preventDefault();
+    const token = accessKeyInput.trim();
+    if (!token) {
+      setAccessError('Access key is required.');
+      return;
+    }
+
+    setIsUnlocking(true);
+    setAccessError('');
+    setAppAccessToken(token);
+    try {
+      const response = await fetch(apiUrl('/api/v1/protected/status'), {
+        headers: {
+          'X-App-Token': token,
+        },
+      });
+      if (response.status === 401) {
+        throw new Error('Invalid access key.');
+      }
+      if (!response.ok) {
+        throw new Error('Unable to verify access key right now.');
+      }
+      setIsAccessUnlocked(true);
+      setAccessKeyInput('');
+    } catch (error) {
+      clearAppAccessToken();
+      setAccessError(error.message || 'Access verification failed.');
+    } finally {
+      setIsUnlocking(false);
+    }
+  };
+
+  if (!isAccessUnlocked) {
+    return (
+      <div className="access-gate">
+        <form className="access-gate-card glass-panel" onSubmit={handleAccessUnlock}>
+          <h1>Private Dashboard Access</h1>
+          <p>Enter your app access key to unlock Algo-Sassy.</p>
+          <input
+            type="password"
+            className="access-gate-input"
+            placeholder="Enter access key"
+            value={accessKeyInput}
+            onChange={(event) => setAccessKeyInput(event.target.value)}
+            autoComplete="current-password"
+            autoFocus
+          />
+          {accessError && <p className="access-gate-error">{accessError}</p>}
+          <button type="submit" className="btn btn-primary access-gate-btn" disabled={isUnlocking}>
+            {isUnlocking ? 'Verifying...' : 'Unlock Dashboard'}
+          </button>
+        </form>
+      </div>
+    );
+  }
 
   return (
     <BrowserRouter>

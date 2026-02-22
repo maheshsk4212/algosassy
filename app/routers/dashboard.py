@@ -12,6 +12,7 @@ from app.services.regime_service import regime_service
 from app.services.governance_guard import governance_guard
 from app.state_manager import state_manager
 from app.core.time_provider import time_provider
+from app.core.security import websocket_app_access_allowed
 import random
 
 router = APIRouter(prefix="/dashboard", tags=["Dashboard APIs"])
@@ -177,6 +178,9 @@ async def websocket_stream(websocket: WebSocket):
     Sends a realtime feed at roughly 4fps of the system's latest prices and PNL.
     This lockless dirty read prevents blocking core execution threads while keeping the UI snappy.
     """
+    if not await websocket_app_access_allowed(websocket):
+        return
+
     await websocket.accept()
     try:
         while True:

@@ -23,6 +23,35 @@
     gap: var(--sp-3);
 }
 
+.portfolio-tabs {
+    display: flex;
+    gap: var(--sp-2);
+}
+
+.portfolio-tab-btn {
+    border: 1px solid var(--glass-border);
+    background: var(--bg-inset);
+    color: var(--text-secondary);
+    font-size: 0.78rem;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    border-radius: var(--radius-sm);
+    padding: 8px 14px;
+    cursor: pointer;
+    transition: var(--transition-base);
+}
+
+.portfolio-tab-btn:hover {
+    color: var(--text-primary);
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+.portfolio-tab-btn.active {
+    color: var(--accent-cyan);
+    border-color: rgba(34, 211, 238, 0.35);
+    background: rgba(34, 211, 238, 0.08);
+}
+
 /* ── Concentration Risk Alert ──────────────────────────── */
 .concentration-alert {
     background: var(--color-alert-glow);
@@ -148,6 +177,12 @@
     text-align: right;
 }
 
+.table-empty {
+    padding: 1rem;
+    opacity: 0.6;
+    font-size: 0.85rem;
+}
+
 /* ── Portfolio Grid ────────────────────────────────────────── */
 .portfolio-grid {
     display: grid;
@@ -226,6 +261,15 @@
     height: 250px;
 }
 
+.chart-empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 250px;
+    opacity: 0.5;
+    font-size: 0.9rem;
+}
+
 .pie-container {
     display: flex;
     align-items: center;
@@ -251,6 +295,65 @@
     width: 8px;
     height: 8px;
     border-radius: 50%;
+}
+
+.holdings-grid {
+    align-items: start;
+}
+
+.holdings-panel-main {
+    padding: var(--sp-6);
+}
+
+.holdings-table-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.holdings-header {
+    display: grid;
+    grid-template-columns: 1.2fr 0.6fr 0.8fr 0.8fr 1fr 1fr 0.8fr;
+    gap: var(--sp-3);
+    padding: var(--sp-2) var(--sp-3);
+    font-size: 0.6rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-muted);
+    font-weight: 700;
+}
+
+.holdings-row {
+    display: grid;
+    grid-template-columns: 1.2fr 0.6fr 0.8fr 0.8fr 1fr 1fr 0.8fr;
+    gap: var(--sp-3);
+    padding: var(--sp-3);
+    border-radius: var(--radius-sm);
+    background: var(--bg-inset);
+    border: 1px solid transparent;
+    align-items: center;
+    font-size: 0.82rem;
+}
+
+.holdings-row:hover {
+    background: rgba(255, 255, 255, 0.03);
+    border-color: var(--glass-border);
+}
+
+.holdings-symbol {
+    font-family: var(--font-mono);
+    font-weight: 600;
+    color: var(--text-heading);
+}
+
+.holdings-pnl-positive {
+    color: var(--text-positive);
+    font-weight: 600;
+}
+
+.holdings-pnl-negative {
+    color: var(--text-alert);
+    font-weight: 600;
 }
 
 @media (max-width: 1200px) {
@@ -280,9 +383,20 @@
         -webkit-overflow-scrolling: touch;
     }
 
+    .holdings-table-wrap {
+        overflow-x: auto;
+        padding-bottom: var(--sp-1);
+        -webkit-overflow-scrolling: touch;
+    }
+
     .risk-contrib-header,
     .risk-contrib-row {
         min-width: 540px;
+    }
+
+    .holdings-header,
+    .holdings-row {
+        min-width: 760px;
     }
 
     .risk-contrib-header {

@@ -116,6 +116,16 @@ async def get_positions():
         # If API not connected, return mock or error safely
         return {"error": str(e), "net": [], "day": []}
 
+@router.get("/holdings")
+async def get_holdings():
+    try:
+        kite = get_kite_service()
+        if kite._kite.access_token:
+            return {"holdings": await kite.get_holdings()}
+        return {"holdings": []}
+    except Exception as e:
+        return {"error": str(e), "holdings": []}
+
 @router.get("/strategies")
 async def get_strategies():
     from app.services.drift_monitor import drift_monitor

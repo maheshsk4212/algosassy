@@ -1,10 +1,9 @@
 import logging
-import threading
 import time
 from typing import Dict
 
 from app.core.event_bus import event_bus, EventType
-from app.services.kite_service import init_kite_service  # Using the wrapper
+from app.state_manager import state_manager, SystemState
 
 logger = logging.getLogger(__name__)
 
@@ -24,6 +23,11 @@ class BrokerReconciliationService:
         logger.debug("Starting Broker Reconciliation Cycle...")
         
         try:
+            # Do not hit broker APIs unless the app is in authenticated/ready mode.
+            if state_manager.get_state() != SystemState.READY:
+                logger.debug("Reconciliation skipped: system is not READY.")
+                return
+
             from app.services.kite_service import get_kite_service
             from app.services.mtm_engine import mtm_engine
             kite = get_kite_service()

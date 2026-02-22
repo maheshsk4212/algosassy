@@ -173,6 +173,38 @@
     .risk-panels {
         grid-template-columns: 1fr;
     }
+
+    .risk-alert-banner {
+        font-size: 0.82rem;
+        line-height: 1.45;
+    }
+
+    .risk-editor,
+    .settings-section,
+    .readonly-card,
+    .sim-result {
+        padding: var(--sp-5);
+    }
+
+    .risk-editor h3,
+    .settings-section h3 {
+        font-size: 1rem;
+    }
+
+    .readonly-card h3,
+    .sim-result h3 {
+        font-size: 0.8rem;
+    }
+
+    .readonly-row,
+    .sim-metric,
+    .toggle-label {
+        font-size: 0.92rem;
+    }
+
+    .live-badge {
+        font-size: 0.72rem;
+    }
 }
 
 .risk-left-col {

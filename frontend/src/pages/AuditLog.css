@@ -194,8 +194,58 @@
 }
 
 @media (max-width: 768px) {
+    .audit-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: var(--sp-3);
+    }
+
+    .audit-header-actions {
+        width: 100%;
+        flex-wrap: wrap;
+    }
+
+    .audit-btn-icon {
+        min-height: 44px;
+        font-size: 0.86rem;
+    }
+
     .audit-toolbar {
         flex-direction: column;
         align-items: stretch;
+        gap: var(--sp-4);
+    }
+
+    .audit-filters {
+        overflow-x: auto;
+        padding-bottom: var(--sp-1);
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .audit-table-wrap {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .audit-table {
+        min-width: 760px;
+    }
+
+    .audit-table thead th {
+        font-size: 0.72rem;
+    }
+
+    .audit-row td {
+        font-size: 0.9rem;
+    }
+
+    .audit-time {
+        font-size: 0.82rem;
+    }
+
+    .audit-footer {
+        flex-direction: column;
+        gap: var(--sp-2);
+        font-size: 0.82rem;
     }
 }

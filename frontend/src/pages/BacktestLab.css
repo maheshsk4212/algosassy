@@ -357,3 +357,77 @@
         grid-column: span 1;
     }
 }
+
+@media (max-width: 768px) {
+    .lab-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: var(--sp-3);
+    }
+
+    .lab-header-actions {
+        width: 100%;
+        flex-wrap: wrap;
+    }
+
+    .lab-btn {
+        min-height: 44px;
+        font-size: 0.92rem;
+    }
+
+    .lab-layout {
+        gap: var(--sp-4);
+    }
+
+    .lab-config,
+    .lab-main,
+    .lab-stats {
+        padding: var(--sp-5);
+    }
+
+    .config-group label,
+    .config-hint,
+    .backtest-stat-label,
+    .drift-col-label,
+    .badge-lock {
+        font-size: 0.76rem;
+    }
+
+    .main-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: var(--sp-3);
+    }
+
+    .progress-wrap {
+        width: 100%;
+    }
+
+    .stats-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .stat-box-primary {
+        grid-column: span 1;
+    }
+
+    .backtest-stat-value,
+    .drift-col-value {
+        font-size: 1.08rem;
+    }
+
+    .stat-value-lg {
+        font-size: 1.85rem;
+    }
+
+    .impact-row,
+    .impact-total {
+        font-size: 0.92rem;
+    }
+
+    .chart-empty-state {
+        height: 280px;
+        font-size: 0.95rem;
+        padding: var(--sp-6);
+    }
+}

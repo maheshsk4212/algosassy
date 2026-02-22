@@ -190,15 +190,62 @@
 }
 
 @media (max-width: 768px) {
+    .execution-page {
+        height: auto;
+        min-height: calc(100dvh - 168px);
+    }
+
+    .execution-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: var(--sp-3);
+    }
+
+    .execution-header .header-left p {
+        font-size: 0.9rem;
+        line-height: 1.45;
+    }
+
+    .header-right {
+        width: 100%;
+        justify-content: space-between;
+        gap: var(--sp-2);
+        flex-wrap: wrap;
+    }
+
     .exec-summary-strip {
         gap: var(--sp-4);
         overflow-x: auto;
+        padding: var(--sp-4);
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .exec-summary-label {
+        font-size: 0.72rem;
+    }
+
+    .exec-summary-value {
+        font-size: 1rem;
     }
 
     /* On small screens, collapse table to fewer columns */
     .order-header,
     .order-row {
         grid-template-columns: 1.4fr 1fr 0.7fr 1fr 1fr 0.9fr;
+        padding: var(--sp-3) var(--sp-4);
+    }
+
+    .order-header {
+        font-size: 0.72rem;
+    }
+
+    .order-row {
+        font-size: 0.9rem;
+    }
+
+    .order-row .col-time,
+    .col-strategy {
+        font-size: 0.82rem;
     }
 
     /* Hide latency/slippage/strategy on mobile to keep clean */

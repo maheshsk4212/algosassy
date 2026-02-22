@@ -140,7 +140,13 @@ const StrategyCard = ({ strat, onToggle, onOverride }) => {
                 </div>
                 <div className="toggle-area">
                     {isLocked && (
-                        <button className="btn-override" onClick={onOverride} title="Admin Override Request">
+                        <button
+                            type="button"
+                            className="btn-override"
+                            onClick={onOverride}
+                            title="Admin Override Request"
+                            aria-label={`Request admin override for ${strat.name}`}
+                        >
                             <Lock size={14} />
                         </button>
                     )}

@@ -164,3 +164,45 @@
     box-shadow: 0 0 30px rgba(239, 68, 68, 0.5);
     transform: translateY(-2px);
 }
+
+@media (max-width: 768px) {
+    .emotion-guard-page {
+        gap: var(--sp-5);
+    }
+
+    .intercept-panel,
+    .bypass-panel,
+    .unlocked-alert {
+        padding: var(--sp-5);
+    }
+
+    .intercept-panel h3,
+    .bypass-panel h3 {
+        font-size: 0.82rem;
+    }
+
+    .intercept-copy,
+    .unlocked-desc,
+    .cooldown-label {
+        font-size: 0.95rem;
+    }
+
+    .reason-field {
+        font-size: 1rem;
+        min-height: 140px;
+    }
+
+    .bypass-actions {
+        flex-direction: column-reverse;
+        align-items: stretch;
+    }
+
+    .cooldown-timer {
+        font-size: 3rem;
+    }
+
+    .unlocked-title {
+        font-size: 1rem;
+        letter-spacing: 0.12em;
+    }
+}

@@ -13,6 +13,14 @@ from app.config import config
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
+@router.get("/status")
+async def auth_status(db: Session = Depends(get_db)):
+    """
+    Lightweight auth diagnostic endpoint for UI visibility.
+    Does not make network calls to Kite; returns current local auth diagnosis.
+    """
+    return auth_manager.get_status_snapshot(db)
+
 @router.get("/login")
 async def login():
     """Redirects user to the Kite API login page."""

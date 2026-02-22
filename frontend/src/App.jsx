@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, NavLink } from 'react-router-dom';
 import {
   BarChart3,
@@ -11,22 +11,33 @@ import {
   FileText,
   Settings,
   AlertOctagon,
-  Zap
+  Zap,
+  Menu,
+  X,
+  Link2,
+  CheckCircle,
+  WifiOff
 } from 'lucide-react';
 import './App.css';
 import { apiUrl } from './config/api';
 import { withAdminHeaders } from './config/admin';
 
-import { OverviewDashboard } from './pages/OverviewDashboard';
-import { RiskControlPanel } from './pages/RiskControlPanel';
-import { StrategyPanel } from './pages/StrategyPanel';
-import { LiveExecution } from './pages/LiveExecution';
-import { PortfolioView } from './pages/PortfolioView';
-import { BacktestLab } from './pages/BacktestLab';
-import { SystemHealth } from './pages/SystemHealth';
-import { EmotionGuard } from './pages/EmotionGuard';
-import { AuditLogPage } from './pages/AuditLogPage';
-import { SettingsPage } from './pages/SettingsPage';
+const lazyPage = (loader, namedExport) =>
+  React.lazy(async () => {
+    const mod = await loader();
+    return { default: mod.default || mod[namedExport] };
+  });
+
+const OverviewDashboard = lazyPage(() => import('./pages/OverviewDashboard'), 'OverviewDashboard');
+const RiskControlPanel = lazyPage(() => import('./pages/RiskControlPanel'), 'RiskControlPanel');
+const StrategyPanel = lazyPage(() => import('./pages/StrategyPanel'), 'StrategyPanel');
+const LiveExecution = lazyPage(() => import('./pages/LiveExecution'), 'LiveExecution');
+const PortfolioView = lazyPage(() => import('./pages/PortfolioView'), 'PortfolioView');
+const BacktestLab = lazyPage(() => import('./pages/BacktestLab'), 'BacktestLab');
+const SystemHealth = lazyPage(() => import('./pages/SystemHealth'), 'SystemHealth');
+const EmotionGuard = lazyPage(() => import('./pages/EmotionGuard'), 'EmotionGuard');
+const AuditLogPage = lazyPage(() => import('./pages/AuditLogPage'), 'AuditLogPage');
+const SettingsPage = lazyPage(() => import('./pages/SettingsPage'), 'SettingsPage');
 
 const GlobalRiskBanner = () => {
   const [bannerData, setBannerData] = React.useState({
@@ -145,21 +156,38 @@ const bottomNavItems = [
   { path: '/portfolio', label: 'Portfolio', icon: PieChart },
 ];
 
-import { Menu, X, Link2, CheckCircle, WifiOff } from 'lucide-react';
-
 /** Polls the backend every 3s to show Kite session state in the sidebar */
 const KiteSessionStatus = () => {
-  const [status, setStatus] = React.useState('checking'); // checking | ready | disconnected
+  const [authStatus, setAuthStatus] = React.useState({
+    phase: 'checking', // checking | ready | disconnected
+    reason: '',
+    reasonCode: '',
+  });
 
   React.useEffect(() => {
     const check = async () => {
       try {
-        const res = await fetch(apiUrl('/api/v1/protected/status'));
-        if (!res.ok) { setStatus('disconnected'); return; }
+        const res = await fetch(apiUrl('/api/v1/auth/status'));
+        if (!res.ok) {
+          setAuthStatus({
+            phase: 'disconnected',
+            reason: 'Unable to verify Kite session status.',
+            reasonCode: 'AUTH_STATUS_UNAVAILABLE',
+          });
+          return;
+        }
         const data = await res.json();
-        setStatus(data.state === 'READY' ? 'ready' : 'disconnected');
+        setAuthStatus({
+          phase: data.authenticated ? 'ready' : 'disconnected',
+          reason: data.reason || '',
+          reasonCode: data.reason_code || '',
+        });
       } catch {
-        setStatus('disconnected');
+        setAuthStatus({
+          phase: 'disconnected',
+          reason: 'Backend is unreachable. Check network/backend health.',
+          reasonCode: 'NETWORK_ERROR',
+        });
       }
     };
     check();
@@ -167,7 +195,7 @@ const KiteSessionStatus = () => {
     return () => clearInterval(t);
   }, []);
 
-  if (status === 'ready') {
+  if (authStatus.phase === 'ready') {
     return (
       <div className="kite-session-badge kite-session-connected">
         <CheckCircle size={12} />
@@ -176,16 +204,23 @@ const KiteSessionStatus = () => {
     );
   }
 
-  if (status === 'disconnected') {
+  if (authStatus.phase === 'disconnected') {
     return (
-      <a
-        className="kite-login-btn"
-        href={apiUrl('/api/v1/auth/login')}
-        title="Login with your Zerodha account to start live trading"
-      >
-        <Link2 size={13} />
-        Connect Kite Account
-      </a>
+      <div className="kite-session-stack">
+        <a
+          className="kite-login-btn"
+          href={apiUrl('/api/v1/auth/login')}
+          title="Login with your Zerodha account to start live trading"
+        >
+          <Link2 size={13} />
+          Connect Kite Account
+        </a>
+        {authStatus.reason && (
+          <p className="kite-status-hint" role="status" title={authStatus.reasonCode || undefined}>
+            {authStatus.reason}
+          </p>
+        )}
+      </div>
     );
   }
 
@@ -266,6 +301,17 @@ function App() {
             <span className="brand-dot"></span>
             <h2>Quant Cockpit</h2>
           </div>
+          <button
+            type="button"
+            className={`mobile-menu-btn ${isMobileMenuOpen ? 'active' : ''}`}
+            onClick={toggleMobileMenu}
+            aria-label={isMobileMenuOpen ? 'Close navigation menu' : 'Open navigation menu'}
+            aria-expanded={isMobileMenuOpen}
+            aria-controls="main-sidebar"
+          >
+            <Menu size={20} />
+            <span>Menu</span>
+          </button>
         </div>
 
         {/* Mobile Overlay */}
@@ -285,13 +331,18 @@ function App() {
           tabIndex={isMobileMenuOpen ? 0 : -1}
         ></div>
 
-        <nav className={`sidebar ${isMobileMenuOpen ? 'open' : ''}`}>
+        <nav id="main-sidebar" className={`sidebar ${isMobileMenuOpen ? 'open' : ''}`}>
           <div className="sidebar-brand">
             <div className="brand-title">
               <span className="brand-dot"></span>
               <h2>Quant Cockpit</h2>
             </div>
-            <button className="mobile-close-btn" onClick={closeMobileMenu}>
+            <button
+              type="button"
+              className="mobile-close-btn"
+              onClick={closeMobileMenu}
+              aria-label="Close menu"
+            >
               <X size={24} />
             </button>
           </div>
@@ -320,19 +371,21 @@ function App() {
         <main className="main-content">
           <GlobalRiskBanner />
           <div className="content-wrapper">
-            <Routes>
-              <Route path="/" element={<OverviewDashboard />} />
-              <Route path="/execution" element={<LiveExecution />} />
-              <Route path="/risk" element={<RiskControlPanel />} />
-              <Route path="/strategies" element={<StrategyPanel />} />
-              <Route path="/portfolio" element={<PortfolioView />} />
-              <Route path="/backtest" element={<BacktestLab />} />
-              <Route path="/health" element={<SystemHealth />} />
-              <Route path="/logs" element={<AuditLogPage />} />
-              <Route path="/audit" element={<EmotionGuard />} />
-              <Route path="/settings" element={<SettingsPage />} />
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
+            <Suspense fallback={<div className="route-loading" role="status">Loading module...</div>}>
+              <Routes>
+                <Route path="/" element={<OverviewDashboard />} />
+                <Route path="/execution" element={<LiveExecution />} />
+                <Route path="/risk" element={<RiskControlPanel />} />
+                <Route path="/strategies" element={<StrategyPanel />} />
+                <Route path="/portfolio" element={<PortfolioView />} />
+                <Route path="/backtest" element={<BacktestLab />} />
+                <Route path="/health" element={<SystemHealth />} />
+                <Route path="/logs" element={<AuditLogPage />} />
+                <Route path="/audit" element={<EmotionGuard />} />
+                <Route path="/settings" element={<SettingsPage />} />
+                <Route path="*" element={<Navigate to="/" replace />} />
+              </Routes>
+            </Suspense>
           </div>
         </main>
 
@@ -350,7 +403,12 @@ function App() {
               <span>{item.label}</span>
             </NavLink>
           ))}
-          <button className="bottom-nav-item menu-toggle" onClick={toggleMobileMenu}>
+          <button
+            type="button"
+            className="bottom-nav-item menu-toggle"
+            onClick={toggleMobileMenu}
+            aria-label="Open navigation menu"
+          >
             <Menu size={20} />
             <span>Menu</span>
           </button>

@@ -278,3 +278,52 @@
         flex-direction: column;
     }
 }
+
+@media (max-width: 768px) {
+    .health-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: var(--sp-3);
+    }
+
+    .vital-cards-row {
+        grid-template-columns: 1fr;
+        gap: var(--sp-4);
+    }
+
+    .vital-card,
+    .queue-panel,
+    .processes-panel {
+        padding: var(--sp-5);
+    }
+
+    .vital-label {
+        font-size: 0.9rem;
+    }
+
+    .vital-sub {
+        font-size: 0.86rem;
+    }
+
+    .queue-stats {
+        flex-direction: column;
+        gap: var(--sp-3);
+    }
+
+    .queue-stats .q-stat .label {
+        font-size: 0.82rem;
+    }
+
+    .queue-stats .q-stat .value {
+        font-size: 1.2rem;
+    }
+
+    .p-name {
+        font-size: 1rem;
+    }
+
+    .p-sub,
+    .p-status {
+        font-size: 0.82rem;
+    }
+}

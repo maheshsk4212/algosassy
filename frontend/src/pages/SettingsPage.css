@@ -188,11 +188,64 @@
 }
 
 @media (max-width: 600px) {
+    .settings-page {
+        gap: var(--sp-6);
+    }
+
+    .settings-page .section-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: var(--sp-3);
+    }
+
+    .settings-actions {
+        width: 100%;
+        justify-content: space-between;
+        flex-wrap: wrap;
+    }
+
+    .save-confirm {
+        font-size: 0.86rem;
+    }
+
     .settings-grid {
         grid-template-columns: 1fr;
     }
 
+    .settings-section {
+        padding: var(--sp-5);
+    }
+
+    .form-group label {
+        font-size: 0.8rem;
+    }
+
     .theme-picker {
         grid-template-columns: 1fr;
+    }
+
+    .theme-name {
+        font-size: 0.86rem;
+    }
+
+    .toggle-label {
+        font-size: 0.92rem;
+    }
+
+    .toggle-switch {
+        width: 46px;
+        height: 26px;
+        border-radius: 14px;
+    }
+
+    .toggle-knob {
+        width: 18px;
+        height: 18px;
+        top: 3px;
+        left: 3px;
+    }
+
+    .toggle-switch.on .toggle-knob {
+        transform: translateX(20px);
     }
 }

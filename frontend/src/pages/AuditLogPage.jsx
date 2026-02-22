@@ -128,7 +128,12 @@ export const AuditLogPage = () => {
                         className="audit-search-input"
                     />
                     {search && (
-                        <button className="search-clear" onClick={() => setSearch('')}>
+                        <button
+                            type="button"
+                            className="search-clear"
+                            onClick={() => setSearch('')}
+                            aria-label="Clear search"
+                        >
                             <Trash2 size={12} />
                         </button>
                     )}

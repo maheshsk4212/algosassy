@@ -44,8 +44,13 @@ export const StatefulToggle = ({
             </div>
 
             <button
+                type="button"
                 onClick={handleClick}
                 disabled={locked || isProcessing}
+                role="switch"
+                aria-label={label}
+                aria-checked={initialState}
+                aria-disabled={locked || isProcessing}
                 className={`
           relative inline-flex h-6 w-11 items-center rounded-full transition-colors
           ${initialState ? 'bg-profit' : 'bg-[rgba(255,255,255,0.1)]'}

@@ -180,6 +180,40 @@
     }
 
     .bottom-stats {
-        grid-template-columns: repeat(2, 1fr);
+        grid-template-columns: 1fr;
+    }
+
+    .equity-panel,
+    .activity-panel {
+        padding: var(--sp-5);
+    }
+
+    .equity-panel {
+        min-height: 340px;
+    }
+
+    .equity-panel h3,
+    .activity-panel h3 {
+        font-size: 1rem;
+    }
+
+    .activity-item {
+        padding: var(--sp-4);
+    }
+
+    .activity-item .activity-time {
+        font-size: 0.8rem;
+    }
+
+    .activity-item .activity-msg {
+        font-size: 0.9rem;
+    }
+
+    .stat-mini-card .stat-mini-label {
+        font-size: 0.82rem;
+    }
+
+    .stat-mini-card .stat-mini-value {
+        font-size: 1.25rem;
     }
 }

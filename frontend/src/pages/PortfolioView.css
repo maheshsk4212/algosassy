@@ -258,3 +258,73 @@
         grid-template-columns: 1fr;
     }
 }
+
+@media (max-width: 768px) {
+    .portfolio-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: var(--sp-3);
+    }
+
+    .risk-contrib-panel-main,
+    .heatmap-panel,
+    .risk-contrib-panel,
+    .sector-panel,
+    .correlation-panel {
+        padding: var(--sp-5);
+    }
+
+    .risk-contrib-table {
+        overflow-x: auto;
+        padding-bottom: var(--sp-1);
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .risk-contrib-header,
+    .risk-contrib-row {
+        min-width: 540px;
+    }
+
+    .risk-contrib-header {
+        font-size: 0.7rem;
+    }
+
+    .rc-symbol {
+        font-size: 0.95rem;
+    }
+
+    .rc-pct {
+        font-size: 0.9rem;
+        width: 54px;
+    }
+
+    .rc-limit {
+        font-size: 0.85rem;
+    }
+
+    .rc-status {
+        font-size: 0.72rem;
+    }
+
+    .heatmap-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .heat-symbol {
+        font-size: 1.05rem;
+    }
+
+    .heat-val {
+        font-size: 0.9rem;
+    }
+
+    .legend-item {
+        font-size: 0.9rem;
+    }
+}
+
+@media (max-width: 420px) {
+    .heatmap-grid {
+        grid-template-columns: 1fr;
+    }
+}

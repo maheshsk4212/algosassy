@@ -135,6 +135,24 @@
     .strategies-grid {
         grid-template-columns: 1fr;
     }
+
+    .strategy-card {
+        padding: var(--sp-5);
+        min-height: 0;
+    }
+
+    .strategy-card .strat-name {
+        font-size: 0.95rem;
+    }
+
+    .card-stat .stat-label,
+    .lock-reason {
+        font-size: 0.72rem;
+    }
+
+    .card-stat .stat-val {
+        font-size: 1.2rem;
+    }
 }
 
 /* ── Empty State (regime filtering explanation) ────────────── */

@@ -1,5 +1,5 @@
 import logging
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, HTTPException, status
 from typing import Optional
 
 from app.services.event_logger import get_recent_events, log_event
@@ -47,4 +47,7 @@ async def trigger_weekly_audit():
         return {"status": "dispatched", "message": "Weekly audit report dispatched successfully."}
     except Exception as e:
         logger.error(f"Weekly audit trigger failed: {e}")
-        return {"status": "error", "message": str(e)}
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Weekly audit trigger failed: {e}",
+        ) from e

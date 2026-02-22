@@ -615,3 +615,84 @@ body.session-long {
 .toggle-switch.on .toggle-knob {
   transform: translateX(18px);
 }
+
+/* ── Mobile Readability Layer ──────────────────────────────── */
+@media (max-width: 768px) {
+  html {
+    font-size: 16px;
+  }
+
+  body {
+    line-height: 1.55;
+  }
+
+  h1 {
+    font-size: 1.6rem;
+  }
+
+  h2 {
+    font-size: 1.22rem;
+  }
+
+  h3 {
+    font-size: 1.02rem;
+  }
+
+  .section-header {
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: var(--sp-3);
+  }
+
+  .section-header .section-sub {
+    font-size: 0.9rem;
+    line-height: 1.45;
+    margin-left: 0;
+  }
+
+  .section-badge {
+    font-size: 0.8rem;
+    padding: var(--sp-2) var(--sp-3);
+  }
+
+  .metric-card {
+    padding: var(--sp-5) var(--sp-5);
+    gap: var(--sp-3);
+  }
+
+  .metric-card .metric-label {
+    font-size: 0.8rem;
+    letter-spacing: 0.06em;
+  }
+
+  .metric-card .metric-sub {
+    font-size: 0.84rem;
+  }
+
+  .btn {
+    min-height: 44px;
+    font-size: 0.92rem;
+    padding: var(--sp-3) var(--sp-4);
+  }
+
+  .ui-input,
+  .ui-select {
+    min-height: 44px;
+    font-size: 1rem;
+  }
+
+  .form-group label {
+    font-size: 0.8rem;
+  }
+
+  .status-badge {
+    font-size: 0.74rem;
+    padding: 4px 10px;
+  }
+}
+
+@media (max-width: 420px) {
+  html {
+    font-size: 15px;
+  }
+}

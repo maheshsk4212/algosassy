@@ -36,6 +36,11 @@ body {
   line-height: 1.6;
 }
 
+#root {
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
 /* ── Typography ─────────────────────────────────────────────── */
 h1,
 h2 {

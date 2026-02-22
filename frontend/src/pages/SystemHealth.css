@@ -148,6 +148,7 @@
     display: flex;
     gap: var(--sp-6);
     margin-top: var(--sp-6);
+    align-items: flex-start;
 }
 
 .queue-panel {
@@ -178,8 +179,27 @@
 }
 
 .queue-chart {
-    margin-top: 1rem;
-    margin-bottom: 1rem;
+    margin-top: 0.5rem;
+    margin-bottom: 0.5rem;
+    min-height: 140px;
+}
+
+.queue-chart-empty {
+    min-height: 84px;
+}
+
+.queue-empty-state {
+    min-height: 84px;
+    border: 1px dashed var(--glass-border);
+    border-radius: var(--radius-md);
+    background: var(--bg-inset);
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: var(--sp-3);
+    font-size: 0.82rem;
 }
 
 .queue-stats {

@@ -63,6 +63,19 @@ export const SystemHealth = () => {
     };
 
     const queueDepth = queueData.length > 0 ? queueData[queueData.length - 1].depth : 0;
+    const hasQueueSignal = queueData.some((point) => Number(point.depth || 0) > 0);
+    const peakDepth = queueData.length > 0
+        ? queueData.reduce((peak, row) => Math.max(peak, Number(row.depth || 0)), 0)
+        : 0;
+    const processingRate = queueData.length > 1
+        ? Math.max(
+            0,
+            Math.abs(
+                Number(queueData[queueData.length - 1]?.depth || 0) -
+                Number(queueData[queueData.length - 2]?.depth || 0)
+            )
+        )
+        : 0;
 
     return (
         <div className="page-container">
@@ -150,21 +163,27 @@ export const SystemHealth = () => {
                 <div className="health-main-panels">
                     <div className={`glass-panel queue-panel ${queueDepth > 150 ? 'queue-elevated-glow' : ''}`}>
                         <h3><Activity size={18} /> Event Queue Depth</h3>
-                        <div className="queue-chart">
-                            <ResponsiveContainer width="100%" height={200}>
-                                <BarChart data={queueData}>
-                                    <YAxis hide domain={[0, 250]} />
-                                    <Bar dataKey="depth" isAnimationActive={false}>
-                                        {queueData.map((entry, index) => (
-                                            <Cell key={`cell-${index}`} fill={
-                                                entry.depth > 150 ? 'var(--color-alert)' :
-                                                    entry.depth > 80 ? 'var(--color-warning)' :
-                                                        'var(--accent-teal-muted)'
-                                            } />
-                                        ))}
-                                    </Bar>
-                                </BarChart>
-                            </ResponsiveContainer>
+                        <div className={`queue-chart ${!hasQueueSignal ? 'queue-chart-empty' : ''}`}>
+                            {hasQueueSignal ? (
+                                <ResponsiveContainer width="100%" height={140}>
+                                    <BarChart data={queueData}>
+                                        <YAxis hide domain={[0, 250]} />
+                                        <Bar dataKey="depth" isAnimationActive={false}>
+                                            {queueData.map((entry, index) => (
+                                                <Cell key={`cell-${index}`} fill={
+                                                    entry.depth > 150 ? 'var(--color-alert)' :
+                                                        entry.depth > 80 ? 'var(--color-warning)' :
+                                                            'var(--accent-teal-muted)'
+                                                } />
+                                            ))}
+                                        </Bar>
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            ) : (
+                                <div className="queue-empty-state">
+                                    Queue is stable. No buffered events in the recent sampling window.
+                                </div>
+                            )}
                         </div>
                         <div className="queue-stats">
                             <div className="q-stat">
@@ -173,11 +192,11 @@ export const SystemHealth = () => {
                             </div>
                             <div className="q-stat">
                                 <span className="label">Processing Rate</span>
-                                <span className="value">4.2k / sec</span>
+                                <span className="value">{processingRate} / sec</span>
                             </div>
                             <div className="q-stat">
                                 <span className="label">Peak (1hr)</span>
-                                <span className="value warning">184 msgs</span>
+                                <span className={`value ${peakDepth > 150 ? 'warning' : ''}`}>{peakDepth} msgs</span>
                             </div>
                         </div>
                     </div>

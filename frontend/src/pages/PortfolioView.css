@@ -322,8 +322,6 @@
 }
 
 .holdings-cards {
-    display: flex;
-    flex-direction: column;
     gap: var(--sp-3);
 }
 
@@ -463,6 +461,11 @@
 
     .mobile-only {
         display: block;
+    }
+
+    .holdings-cards.mobile-only {
+        display: flex;
+        flex-direction: column;
     }
 
     .risk-contrib-header,

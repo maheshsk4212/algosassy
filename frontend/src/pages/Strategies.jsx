@@ -148,6 +148,7 @@ const StrategyCard = ({ strat, onToggle, onOverride }) => {
                         className={`toggle-switch ${strat.isActive ? 'on' : 'off'} ${isLocked ? 'disabled' : ''}`}
                         onClick={onToggle}
                         role="switch"
+                        aria-label={`Toggle strategy ${strat.name}`}
                         aria-checked={strat.isActive}
                         aria-disabled={isLocked}
                         tabIndex={isLocked ? -1 : 0}

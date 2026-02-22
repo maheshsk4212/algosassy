@@ -272,6 +272,17 @@ function App() {
         <div
           className={`mobile-overlay ${isMobileMenuOpen ? 'open' : ''}`}
           onClick={closeMobileMenu}
+          onKeyDown={(event) => {
+            if (!isMobileMenuOpen) return;
+            if (event.key === 'Enter' || event.key === ' ' || event.key === 'Escape') {
+              event.preventDefault();
+              closeMobileMenu();
+            }
+          }}
+          role="button"
+          aria-label="Close navigation menu"
+          aria-hidden={!isMobileMenuOpen}
+          tabIndex={isMobileMenuOpen ? 0 : -1}
         ></div>
 
         <nav className={`sidebar ${isMobileMenuOpen ? 'open' : ''}`}>

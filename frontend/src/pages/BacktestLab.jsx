@@ -263,6 +263,7 @@ export const BacktestLab = () => {
                             className={`toggle-switch ${config.partialFills ? 'on' : ''}`}
                             onClick={() => update('partialFills', !config.partialFills)}
                             role="switch"
+                            aria-label="Toggle partial fill simulation"
                             aria-checked={config.partialFills}
                             aria-disabled={isRunning}
                             tabIndex={isRunning ? -1 : 0}

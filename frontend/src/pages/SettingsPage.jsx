@@ -193,6 +193,7 @@ const ToggleRow = ({ label, checked, onChange }) => (
             className={`toggle-switch ${checked ? 'on' : ''}`}
             onClick={() => onChange(!checked)}
             role="switch"
+            aria-label={label}
             aria-checked={checked}
             tabIndex={0}
             onKeyDown={(event) => {

@@ -29,6 +29,20 @@ const toSectorChart = (rows, valueKey) => {
     }));
 };
 
+const compressSectors = (sectors, maxBuckets = 10) => {
+    if (!Array.isArray(sectors) || sectors.length <= maxBuckets) return sectors;
+
+    const sorted = [...sectors].sort((a, b) => b.value - a.value);
+    const primary = sorted.slice(0, maxBuckets - 1);
+    const otherValue = sorted
+        .slice(maxBuckets - 1)
+        .reduce((sum, row) => sum + Number(row.value || 0), 0);
+
+    if (otherValue <= 0) return primary;
+
+    return [...primary, { name: 'OTHER', value: parseFloat(otherValue.toFixed(1)) }];
+};
+
 export const PortfolioView = () => {
     const [activeTab, setActiveTab] = useState('positions');
     const [showAdvanced, setShowAdvanced] = useState(false);
@@ -121,7 +135,7 @@ export const PortfolioView = () => {
                     .filter((row) => row.quantity > 0);
 
                 setHoldings(mapped);
-                setHoldingsSectors(toSectorChart(mapped, 'marketValue'));
+                setHoldingsSectors(compressSectors(toSectorChart(mapped, 'marketValue'), 9));
                 setHoldingsError(data?.error || '');
             } catch (err) {
                 console.error('Failed to load holdings', err);
@@ -321,7 +335,7 @@ export const PortfolioView = () => {
                                 Broker warning: {holdingsError}
                             </div>
                         )}
-                        <div className="holdings-table-wrap">
+                        <div className="holdings-table-wrap desktop-only">
                             <div className="holdings-header">
                                 <span>Symbol</span>
                                 <span>Qty</span>
@@ -343,6 +357,43 @@ export const PortfolioView = () => {
                                         {formatInr(row.pnl)}
                                     </span>
                                 </div>
+                            )) : (
+                                <div className="table-empty">No holdings found for this account.</div>
+                            )}
+                        </div>
+
+                        <div className="holdings-cards mobile-only">
+                            {holdings.length > 0 ? holdings.map((row) => (
+                                <article key={`${row.symbol}_card`} className="holdings-card">
+                                    <div className="holdings-card-head">
+                                        <span className="holdings-symbol">{row.symbol}</span>
+                                        <span className="holdings-qty">Qty {row.quantity}</span>
+                                    </div>
+                                    <div className="holdings-card-grid">
+                                        <div className="holdings-card-metric">
+                                            <span className="metric-label">Avg</span>
+                                            <span>{formatInr(row.averagePrice)}</span>
+                                        </div>
+                                        <div className="holdings-card-metric">
+                                            <span className="metric-label">LTP</span>
+                                            <span>{formatInr(row.ltp)}</span>
+                                        </div>
+                                        <div className="holdings-card-metric">
+                                            <span className="metric-label">Invested</span>
+                                            <span>{formatInr(row.invested)}</span>
+                                        </div>
+                                        <div className="holdings-card-metric">
+                                            <span className="metric-label">Value</span>
+                                            <span>{formatInr(row.marketValue)}</span>
+                                        </div>
+                                    </div>
+                                    <div className="holdings-card-pnl">
+                                        <span className="metric-label">PnL</span>
+                                        <span className={row.pnl >= 0 ? 'holdings-pnl-positive' : 'holdings-pnl-negative'}>
+                                            {formatInr(row.pnl)}
+                                        </span>
+                                    </div>
+                                </article>
                             )) : (
                                 <div className="table-empty">No holdings found for this account.</div>
                             )}

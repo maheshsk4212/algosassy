@@ -1,0 +1,39 @@
+name: Deploy Hooks
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-hooks-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  trigger-deploy-hooks:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Render deploy hook
+        if: ${{ secrets.RENDER_DEPLOY_HOOK_URL != '' }}
+        env:
+          RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+        run: |
+          curl --fail --silent --show-error --retry 3 --retry-delay 2 \
+            --request POST "$RENDER_DEPLOY_HOOK_URL"
+
+      - name: Skip Render deploy hook
+        if: ${{ secrets.RENDER_DEPLOY_HOOK_URL == '' }}
+        run: echo "RENDER_DEPLOY_HOOK_URL not set. Skipping Render deploy trigger."
+
+      - name: Trigger Netlify build hook
+        if: ${{ secrets.NETLIFY_BUILD_HOOK_URL != '' }}
+        env:
+          NETLIFY_BUILD_HOOK_URL: ${{ secrets.NETLIFY_BUILD_HOOK_URL }}
+        run: |
+          curl --fail --silent --show-error --retry 3 --retry-delay 2 \
+            --request POST --data '{}' "$NETLIFY_BUILD_HOOK_URL"
+
+      - name: Skip Netlify build hook
+        if: ${{ secrets.NETLIFY_BUILD_HOOK_URL == '' }}
+        run: echo "NETLIFY_BUILD_HOOK_URL not set. Skipping Netlify deploy trigger."

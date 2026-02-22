@@ -27,16 +27,15 @@ import {
   X,
 } from 'lucide-react';
 import './App.css';
-import { apiUrl } from './config/api';
+import { apiUrl, WS_BASE_URL } from './config/api';
+import { getAdminToken, setAdminToken, withAdminHeaders } from './config/admin';
 import {
   clearAppAccessToken,
   getAccessRequiredEventName,
   getAppAccessToken,
   setAppAccessToken,
 } from './config/appAccess';
-
-const STORAGE_MY_STRATEGIES = 'algo_sassy_my_strategies_v2';
-const STORAGE_DEPLOYED_STRATEGIES = 'algo_sassy_deployed_strategies_v2';
+import { useTheme } from './hooks/useTheme';
 const STORAGE_BROKER_SETTINGS = 'algo_sassy_broker_settings_v2';
 
 const TEMPLATE_STRATEGIES = [
@@ -77,6 +76,46 @@ function normalizeStrategyName(name) {
 
 function nowId(prefix) {
   return `${prefix}_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+}
+
+function fromApiStrategy(row) {
+  return {
+    id: row.strategy_id,
+    name: row.name,
+    startTime: row.start_time,
+    endTime: row.end_time,
+    strategyType: row.strategy_type,
+    segmentType: row.segment_type,
+    instrument: row.instrument,
+    weekdays: row.weekdays || [],
+    legs: row.legs || [],
+    advanced: row.advanced || {},
+    risk: row.risk || {},
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+    deployed: Boolean(row.is_deployed),
+    deployedAt: row.deployed_at,
+    source: row.source,
+    runtimeSymbol: row.runtime_symbol ?? null,
+    runtimeStrategyName: row.runtime_strategy_name ?? '',
+  };
+}
+
+function toApiStrategyPayload(strategy) {
+  return {
+    strategy_id: strategy.id,
+    name: strategy.name,
+    strategy_type: strategy.strategyType || 'Time Based',
+    segment_type: strategy.segmentType || 'MIS',
+    instrument: strategy.instrument || 'NIFTY 50',
+    start_time: strategy.startTime || '09:16',
+    end_time: strategy.endTime || '15:15',
+    weekdays: strategy.weekdays || [],
+    legs: strategy.legs || [],
+    advanced: strategy.advanced || {},
+    risk: strategy.risk || {},
+    source: strategy.source || 'custom_builder',
+  };
 }
 
 function useAuthStatusPoll() {
@@ -274,7 +313,8 @@ function Sidebar({ mobileOpen, setMobileOpen }) {
   );
 }
 
-function TopBar({ onMenuClick }) {
+function TopBar({ onMenuClick, theme, onToggleTheme }) {
+  const themeLabel = theme === 'midnight' ? 'Midnight' : theme === 'light' ? 'Light' : 'Dark';
   return (
     <header className="topbar">
       <button className="icon-btn only-mobile" onClick={onMenuClick} aria-label="Open menu">
@@ -289,7 +329,9 @@ function TopBar({ onMenuClick }) {
           <span>V2</span>
         </div>
         <button className="icon-btn" aria-label="Automation"><Bot size={16} /></button>
-        <button className="icon-btn" aria-label="Theme"><Moon size={16} /></button>
+        <button className="icon-btn" aria-label={`Theme: ${themeLabel}`} title={`Theme: ${themeLabel}`} onClick={onToggleTheme}>
+          <Moon size={16} />
+        </button>
         <button className="icon-btn" aria-label="Notifications"><Bell size={16} /></button>
       </div>
     </header>
@@ -377,6 +419,91 @@ function DashboardPage({ brokerState, authStatus, overview, templates, onAddTemp
 }
 
 function BrokerPage({ authStatus, brokerState }) {
+  const [orders, setOrders] = React.useState([]);
+  const [positions, setPositions] = React.useState({ net: [], day: [] });
+  const [holdings, setHoldings] = React.useState([]);
+  const [loading, setLoading] = React.useState(true);
+  const [orderMsg, setOrderMsg] = React.useState('');
+  const [orderErr, setOrderErr] = React.useState('');
+  const [adminToken, setAdminTokenState] = React.useState(getAdminToken());
+  const [manualOrder, setManualOrder] = React.useState({
+    exchange: 'NSE',
+    tradingsymbol: '',
+    transaction_type: 'BUY',
+    quantity: 1,
+    product: 'MIS',
+    order_type: 'MARKET',
+    price: '',
+  });
+
+  const loadBrokerData = React.useCallback(async () => {
+    try {
+      setLoading(true);
+      const [ordersRes, positionsRes, holdingsRes] = await Promise.all([
+        fetch(apiUrl('/api/v1/dashboard/orders')),
+        fetch(apiUrl('/api/v1/dashboard/positions')),
+        fetch(apiUrl('/api/v1/dashboard/holdings')),
+      ]);
+      const [ordersData, positionsData, holdingsData] = await Promise.all([
+        ordersRes.ok ? ordersRes.json() : [],
+        positionsRes.ok ? positionsRes.json() : { net: [], day: [] },
+        holdingsRes.ok ? holdingsRes.json() : { holdings: [] },
+      ]);
+      setOrders(Array.isArray(ordersData) ? ordersData : []);
+      setPositions(positionsData || { net: [], day: [] });
+      setHoldings(Array.isArray(holdingsData?.holdings) ? holdingsData.holdings : []);
+    } catch {
+      // no-op
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  React.useEffect(() => {
+    loadBrokerData();
+  }, [loadBrokerData]);
+
+  const saveAdminToken = () => {
+    setAdminToken(adminToken.trim());
+    setOrderMsg('Admin token saved in browser for manual trading actions.');
+    setOrderErr('');
+  };
+
+  const placeManualOrder = async (event) => {
+    event.preventDefault();
+    setOrderMsg('');
+    setOrderErr('');
+    try {
+      const payload = {
+        ...manualOrder,
+        quantity: Number(manualOrder.quantity),
+      };
+      if (payload.order_type === 'LIMIT') {
+        payload.price = Number(manualOrder.price);
+      } else {
+        delete payload.price;
+      }
+
+      const res = await fetch(
+        apiUrl('/api/v1/dashboard/manual-order'),
+        withAdminHeaders({
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        }),
+      );
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.detail || 'Manual order failed.');
+      }
+      setOrderMsg(`Order placed. ID: ${data.order_id}`);
+      setManualOrder((prev) => ({ ...prev, tradingsymbol: '', quantity: 1, price: '' }));
+      await loadBrokerData();
+    } catch (error) {
+      setOrderErr(error.message || 'Manual order failed.');
+    }
+  };
+
   return (
     <section className="page">
       <div className="panel page-panel">
@@ -410,6 +537,121 @@ function BrokerPage({ authStatus, brokerState }) {
             <label>Trading Engine
               <input type="checkbox" checked={brokerState.engineOn} onChange={(e) => brokerState.setEngineOn(e.target.checked)} />
             </label>
+          </div>
+        </div>
+
+        <div className="broker-ops-grid">
+          <div className="panel broker-ops-panel">
+            <h3>Admin Token</h3>
+            <p>Required only for manual Buy/Sell API actions.</p>
+            <div className="form-grid-2">
+              <label>Token
+                <input
+                  type="password"
+                  value={adminToken}
+                  onChange={(e) => setAdminTokenState(e.target.value)}
+                  placeholder="Enter ADMIN_API_TOKEN"
+                />
+              </label>
+              <button className="btn-primary" onClick={saveAdminToken}>Save Token</button>
+            </div>
+          </div>
+
+          <form className="panel broker-ops-panel" onSubmit={placeManualOrder}>
+            <h3>Manual Buy / Sell</h3>
+            <p>Live order placement via backend `/dashboard/manual-order`.</p>
+            <div className="form-grid-3">
+              <label>Symbol
+                <input
+                  value={manualOrder.tradingsymbol}
+                  onChange={(e) => setManualOrder((v) => ({ ...v, tradingsymbol: e.target.value.toUpperCase() }))}
+                  placeholder="e.g. RELIANCE"
+                  required
+                />
+              </label>
+              <label>Side
+                <select value={manualOrder.transaction_type} onChange={(e) => setManualOrder((v) => ({ ...v, transaction_type: e.target.value }))}>
+                  <option value="BUY">BUY</option>
+                  <option value="SELL">SELL</option>
+                </select>
+              </label>
+              <label>Qty
+                <input
+                  type="number"
+                  min="1"
+                  value={manualOrder.quantity}
+                  onChange={(e) => setManualOrder((v) => ({ ...v, quantity: e.target.value }))}
+                  required
+                />
+              </label>
+              <label>Product
+                <select value={manualOrder.product} onChange={(e) => setManualOrder((v) => ({ ...v, product: e.target.value }))}>
+                  <option value="MIS">MIS</option>
+                  <option value="CNC">CNC</option>
+                  <option value="NRML">NRML</option>
+                </select>
+              </label>
+              <label>Order Type
+                <select value={manualOrder.order_type} onChange={(e) => setManualOrder((v) => ({ ...v, order_type: e.target.value }))}>
+                  <option value="MARKET">MARKET</option>
+                  <option value="LIMIT">LIMIT</option>
+                </select>
+              </label>
+              <label>Price (LIMIT only)
+                <input
+                  type="number"
+                  step="0.05"
+                  value={manualOrder.price}
+                  onChange={(e) => setManualOrder((v) => ({ ...v, price: e.target.value }))}
+                  placeholder="0"
+                  disabled={manualOrder.order_type !== 'LIMIT'}
+                />
+              </label>
+            </div>
+            <div className="broker-order-actions">
+              <button className="btn-primary" type="submit">Place Order</button>
+              {orderMsg && <span className="ok-text">{orderMsg}</span>}
+              {orderErr && <span className="warn-text">{orderErr}</span>}
+            </div>
+          </form>
+        </div>
+
+        <div className="broker-stats-grid">
+          <article>
+            <span>Net Positions</span>
+            <strong>{(positions?.net || []).length}</strong>
+          </article>
+          <article>
+            <span>Holdings</span>
+            <strong>{holdings.length}</strong>
+          </article>
+          <article>
+            <span>Orders (latest pull)</span>
+            <strong>{orders.length}</strong>
+          </article>
+        </div>
+
+        <div className="broker-table-wrap">
+          <h3>Recent Orders</h3>
+          <div className="broker-table">
+            <div className="broker-tr broker-th">
+              <span>Time</span><span>Symbol</span><span>Side</span><span>Qty</span><span>Status</span>
+            </div>
+            {loading ? (
+              <div className="broker-empty">Loading orders...</div>
+            ) : orders.length === 0 ? (
+              <div className="broker-empty">No orders yet.</div>
+            ) : (
+              orders.slice(0, 12).map((order) => (
+                <div className="broker-tr" key={order.order_id || `${order.exchange_order_id}_${order.order_timestamp}`}>
+                  <span>{order.order_timestamp || '--'}</span>
+                  <span>{order.tradingsymbol || '--'}</span>
+                  <span>{order.transaction_type || '--'}</span>
+                  <span>{order.quantity || 0}</span>
+                  <span>{order.status || '--'}</span>
+                </div>
+              ))
+            )}
           </div>
         </div>
       </div>
@@ -483,7 +725,7 @@ function StrategyBuilderPage({ onCreateStrategy }) {
     setLegs((prev) => (prev.length > 1 ? prev.filter((leg) => leg.id !== id) : prev));
   };
 
-  const createStrategy = () => {
+  const createStrategy = async () => {
     const normalizedName = normalizeStrategyName(strategyName);
     const strategyTypeLabel = strategyType.indicator
       ? 'Indicator Based'
@@ -491,25 +733,29 @@ function StrategyBuilderPage({ onCreateStrategy }) {
         ? 'Price Action Based'
         : 'Time Based';
 
-    onCreateStrategy({
-      id: nowId('strat'),
-      name: normalizedName,
-      startTime,
-      endTime: squareOffTime,
-      strategyType: strategyTypeLabel,
-      segmentType: orderType,
-      instrument,
-      weekdays: days,
-      legs,
-      advanced,
-      risk,
-      createdAt: new Date().toISOString(),
-      deployed: false,
-      source: 'custom_builder',
-    });
+    try {
+      await onCreateStrategy({
+        id: nowId('strat'),
+        name: normalizedName,
+        startTime,
+        endTime: squareOffTime,
+        strategyType: strategyTypeLabel,
+        segmentType: orderType,
+        instrument,
+        weekdays: days,
+        legs,
+        advanced,
+        risk,
+        createdAt: new Date().toISOString(),
+        deployed: false,
+        source: 'custom_builder',
+      });
 
-    setStatus(`Strategy "${normalizedName}" created.`);
-    setStrategyName('');
+      setStatus(`Strategy "${normalizedName}" created.`);
+      setStrategyName('');
+    } catch (error) {
+      setStatus(error.message || 'Failed to create strategy.');
+    }
   };
 
   return (
@@ -668,7 +914,7 @@ function StrategyBuilderPage({ onCreateStrategy }) {
   );
 }
 
-function StrategyCard({ row, onBacktest, onDeploy, deployedMode }) {
+function StrategyCard({ row, onBacktest, onDeploy, onUndeploy, deployedMode }) {
   return (
     <article className="strategy-card">
       <div className="strategy-card-head">
@@ -694,12 +940,13 @@ function StrategyCard({ row, onBacktest, onDeploy, deployedMode }) {
       <div className="strategy-actions">
         <button onClick={() => onBacktest(row)}>Backtest</button>
         {!deployedMode && <button className="btn-primary" onClick={() => onDeploy(row)}>Deploy</button>}
+        {deployedMode && <button className="btn-ghost" onClick={() => onUndeploy(row)}>Undeploy</button>}
       </div>
     </article>
   );
 }
 
-function StrategiesPage({ myStrategies, deployedStrategies, templates, onAddTemplate, onDeploy, onBacktestFromCard }) {
+function StrategiesPage({ myStrategies, deployedStrategies, templates, onAddTemplate, onDeploy, onUndeploy, onBacktestFromCard, onRefreshStrategies }) {
   const navigate = useNavigate();
   const [tab, setTab] = React.useState('my');
   const [search, setSearch] = React.useState('');
@@ -725,7 +972,7 @@ function StrategiesPage({ myStrategies, deployedStrategies, templates, onAddTemp
           </div>
           <div className="strategy-grid">
             {filtered.length > 0 ? filtered.map((row) => (
-              <StrategyCard key={row.id} row={row} onBacktest={handleBacktest} onDeploy={onDeploy} />
+              <StrategyCard key={row.id} row={row} onBacktest={handleBacktest} onDeploy={onDeploy} onUndeploy={onUndeploy} />
             )) : <div className="empty-inline">No strategies found.</div>}
           </div>
         </>
@@ -733,11 +980,11 @@ function StrategiesPage({ myStrategies, deployedStrategies, templates, onAddTemp
 
       {tab === 'deployed' && (
         <>
-          <div className="deployed-head"><button className="btn-link"><RefreshCw size={14} /> Refresh</button></div>
+          <div className="deployed-head"><button className="btn-link" onClick={onRefreshStrategies}><RefreshCw size={14} /> Refresh</button></div>
           {deployedStrategies.length > 0 ? (
             <div className="strategy-grid">
               {deployedStrategies.map((row) => (
-                <StrategyCard key={row.id} row={row} deployedMode onBacktest={handleBacktest} onDeploy={() => { }} />
+                <StrategyCard key={row.id} row={row} deployedMode onBacktest={handleBacktest} onDeploy={() => { }} onUndeploy={onUndeploy} />
               ))}
             </div>
           ) : (
@@ -827,12 +1074,95 @@ function BacktestPage({ myStrategies, selectedStrategyName, setSelectedStrategyN
 }
 
 function SimulatorPage() {
+  const [connected, setConnected] = React.useState(false);
+  const [streamErr, setStreamErr] = React.useState('');
+  const [stream, setStream] = React.useState({ prices: {}, unrealized_pnl: 0, system_state: 'UNKNOWN' });
+  const [updatedAt, setUpdatedAt] = React.useState('');
+
+  React.useEffect(() => {
+    let ws;
+    let retryTimer;
+    let closed = false;
+
+    const connect = () => {
+      const token = getAppAccessToken();
+      const query = token ? `?app_token=${encodeURIComponent(token)}` : '';
+      const url = `${WS_BASE_URL}/api/v1/dashboard/ws/stream${query}`;
+      ws = new WebSocket(url);
+      setStreamErr('');
+
+      ws.onopen = () => setConnected(true);
+      ws.onclose = () => {
+        setConnected(false);
+        if (!closed) {
+          retryTimer = window.setTimeout(connect, 2000);
+        }
+      };
+      ws.onerror = () => setStreamErr('Live simulator stream error. Retrying...');
+      ws.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          setStream(data || {});
+          setUpdatedAt(new Date().toLocaleTimeString());
+        } catch {
+          // no-op
+        }
+      };
+    };
+
+    connect();
+    return () => {
+      closed = true;
+      if (retryTimer) window.clearTimeout(retryTimer);
+      if (ws) ws.close();
+    };
+  }, []);
+
+  const priceRows = Object.entries(stream?.prices || {});
+
   return (
     <section className="page">
-      <div className="panel page-panel centered-panel">
-        <SquareTerminal size={48} />
-        <h2>Simulator</h2>
-        <p>Paper trading simulator UI is reserved for the next phase.</p>
+      <div className="panel page-panel">
+        <div className="panel-head">
+          <h1>Simulator</h1>
+          <span className={connected ? 'ok-text' : 'warn-text'}>{connected ? 'LIVE STREAM' : 'DISCONNECTED'}</span>
+        </div>
+
+        {streamErr && <div className="error-inline">{streamErr}</div>}
+
+        <div className="broker-stats-grid">
+          <article>
+            <span>System State</span>
+            <strong>{stream?.system_state || 'UNKNOWN'}</strong>
+          </article>
+          <article>
+            <span>Unrealized P&amp;L</span>
+            <strong>{formatMoney(stream?.unrealized_pnl || 0)}</strong>
+          </article>
+          <article>
+            <span>Last Tick</span>
+            <strong>{updatedAt || '--'}</strong>
+          </article>
+        </div>
+
+        <div className="broker-table-wrap">
+          <h3>Live Price Stream</h3>
+          <div className="broker-table">
+            <div className="broker-tr broker-th">
+              <span>Instrument Token</span><span>Last Price</span>
+            </div>
+            {priceRows.length === 0 ? (
+              <div className="broker-empty">No price ticks received yet.</div>
+            ) : (
+              priceRows.slice(0, 40).map(([token, price]) => (
+                <div className="broker-tr" key={token}>
+                  <span>{token}</span>
+                  <span>{Number(price).toFixed(2)}</span>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
       </div>
     </section>
   );
@@ -864,13 +1194,15 @@ function ReportsPage({ myStrategies, deployedStrategies }) {
 
 function ShellApp() {
   const [mobileOpen, setMobileOpen] = React.useState(false);
+  const { theme, setTheme } = useTheme();
 
   const authStatus = useAuthStatusPoll();
   const overview = useOverviewPoll();
 
-  const [myStrategies, setMyStrategies] = React.useState(() => readJSON(STORAGE_MY_STRATEGIES, []));
-  const [deployedStrategies, setDeployedStrategies] = React.useState(() => readJSON(STORAGE_DEPLOYED_STRATEGIES, []));
+  const [myStrategies, setMyStrategies] = React.useState([]);
   const [brokerSettings, setBrokerSettings] = React.useState(() => readJSON(STORAGE_BROKER_SETTINGS, { terminalOn: true, engineOn: false }));
+  const [strategyError, setStrategyError] = React.useState('');
+  const [strategyBusy, setStrategyBusy] = React.useState(false);
 
   const [selectedStrategyName, setSelectedStrategyName] = React.useState('');
   const [timeRange, setTimeRange] = React.useState('1 Month');
@@ -879,18 +1211,45 @@ function ShellApp() {
   const [backtestError, setBacktestError] = React.useState('');
 
   React.useEffect(() => {
-    writeJSON(STORAGE_MY_STRATEGIES, myStrategies);
-  }, [myStrategies]);
-
-  React.useEffect(() => {
-    writeJSON(STORAGE_DEPLOYED_STRATEGIES, deployedStrategies);
-  }, [deployedStrategies]);
-
-  React.useEffect(() => {
     writeJSON(STORAGE_BROKER_SETTINGS, brokerSettings);
   }, [brokerSettings]);
 
-  const addTemplateAsStrategy = React.useCallback((template) => {
+  const refreshStrategies = React.useCallback(async () => {
+    try {
+      setStrategyBusy(true);
+      setStrategyError('');
+      const res = await fetch(apiUrl('/api/v1/dashboard/strategy-store'));
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.detail || 'Unable to load strategies.');
+      }
+      const mapped = (data.strategies || []).map(fromApiStrategy);
+      setMyStrategies(mapped);
+    } catch (error) {
+      setStrategyError(error.message || 'Unable to load strategies.');
+    } finally {
+      setStrategyBusy(false);
+    }
+  }, []);
+
+  React.useEffect(() => {
+    refreshStrategies();
+  }, [refreshStrategies]);
+
+  const saveStrategy = React.useCallback(async (strategy) => {
+    const res = await fetch(apiUrl('/api/v1/dashboard/strategy-store'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(toApiStrategyPayload(strategy)),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.detail || 'Failed to save strategy.');
+    }
+    return data.strategy;
+  }, []);
+
+  const addTemplateAsStrategy = React.useCallback(async (template) => {
     const newStrategy = {
       id: nowId('strat'),
       name: template.name,
@@ -910,19 +1269,56 @@ function ShellApp() {
       createdAt: new Date().toISOString(),
       source: 'template',
     };
-    setMyStrategies((prev) => [newStrategy, ...prev]);
-  }, []);
+    try {
+      await saveStrategy(newStrategy);
+      await refreshStrategies();
+    } catch (error) {
+      setStrategyError(error.message || 'Failed to add template strategy.');
+    }
+  }, [refreshStrategies, saveStrategy]);
 
-  const createStrategy = React.useCallback((strategy) => {
-    setMyStrategies((prev) => [strategy, ...prev]);
-  }, []);
+  const createStrategy = React.useCallback(async (strategy) => {
+    try {
+      setStrategyError('');
+      await saveStrategy(strategy);
+      await refreshStrategies();
+    } catch (error) {
+      setStrategyError(error.message || 'Failed to create strategy.');
+      throw error;
+    }
+  }, [refreshStrategies, saveStrategy]);
 
-  const deployStrategy = React.useCallback((strategy) => {
-    setDeployedStrategies((prev) => {
-      if (prev.some((x) => x.id === strategy.id)) return prev;
-      return [{ ...strategy, deployed: true, deployedAt: new Date().toISOString() }, ...prev];
-    });
-  }, []);
+  const deployStrategy = React.useCallback(async (strategy) => {
+    try {
+      setStrategyError('');
+      const res = await fetch(apiUrl(`/api/v1/dashboard/strategy-store/${encodeURIComponent(strategy.id)}/deploy`), {
+        method: 'POST',
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.detail || 'Failed to deploy strategy.');
+      }
+      await refreshStrategies();
+    } catch (error) {
+      setStrategyError(error.message || 'Failed to deploy strategy.');
+    }
+  }, [refreshStrategies]);
+
+  const undeployStrategy = React.useCallback(async (strategy) => {
+    try {
+      setStrategyError('');
+      const res = await fetch(apiUrl(`/api/v1/dashboard/strategy-store/${encodeURIComponent(strategy.id)}/undeploy`), {
+        method: 'POST',
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.detail || 'Failed to undeploy strategy.');
+      }
+      await refreshStrategies();
+    } catch (error) {
+      setStrategyError(error.message || 'Failed to undeploy strategy.');
+    }
+  }, [refreshStrategies]);
 
   const setTerminalOn = (value) => setBrokerSettings((prev) => ({ ...prev, terminalOn: value }));
   const setEngineOn = (value) => setBrokerSettings((prev) => ({ ...prev, engineOn: value }));
@@ -933,6 +1329,11 @@ function ShellApp() {
     setTerminalOn,
     setEngineOn,
   };
+
+  const deployedStrategies = React.useMemo(
+    () => myStrategies.filter((strategy) => strategy.deployed),
+    [myStrategies],
+  );
 
   const mapTimeRange = (label) => {
     const lower = (label || '').toLowerCase();
@@ -975,15 +1376,22 @@ function ShellApp() {
     setSelectedStrategyName(strategy.name);
   };
 
+  const toggleTheme = React.useCallback(() => {
+    const next = theme === 'dark-glass' ? 'light' : theme === 'light' ? 'midnight' : 'dark-glass';
+    setTheme(next);
+  }, [setTheme, theme]);
+
   return (
     <BrowserRouter>
       <div className="rebuild-shell">
         <Sidebar mobileOpen={mobileOpen} setMobileOpen={setMobileOpen} />
 
         <div className="rebuild-main">
-          <TopBar onMenuClick={() => setMobileOpen(true)} />
+          <TopBar onMenuClick={() => setMobileOpen(true)} theme={theme} onToggleTheme={toggleTheme} />
 
           <main className="rebuild-content" onClick={() => mobileOpen && setMobileOpen(false)}>
+            {strategyError && <div className="error-inline">{strategyError}</div>}
+            {strategyBusy && <div className="status-ok">Syncing strategies...</div>}
             <Routes>
               <Route
                 path="/dashboard"
@@ -1009,7 +1417,9 @@ function ShellApp() {
                     templates={TEMPLATE_STRATEGIES}
                     onAddTemplate={addTemplateAsStrategy}
                     onDeploy={deployStrategy}
+                    onUndeploy={undeployStrategy}
                     onBacktestFromCard={onBacktestFromCard}
+                    onRefreshStrategies={refreshStrategies}
                   />
                 }
               />

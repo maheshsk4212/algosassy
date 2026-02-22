@@ -795,6 +795,108 @@ input[type='radio'] {
   font-size: 1.3rem;
 }
 
+.broker-ops-grid {
+  margin-top: var(--sp-4);
+  display: grid;
+  grid-template-columns: 1fr 1.4fr;
+  gap: var(--sp-4);
+}
+
+.broker-ops-panel {
+  border: 1px solid var(--glass-border);
+  background: var(--glass-2);
+  border-radius: var(--radius-lg);
+}
+
+.broker-order-actions {
+  margin-top: var(--sp-3);
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  flex-wrap: wrap;
+}
+
+.broker-stats-grid {
+  margin-top: var(--sp-4);
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--sp-3);
+}
+
+.broker-stats-grid article {
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  background: var(--glass-2);
+  padding: var(--sp-4);
+  display: grid;
+  gap: 6px;
+}
+
+.broker-stats-grid span {
+  color: var(--text-muted);
+  font-size: 0.74rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.broker-stats-grid strong {
+  color: var(--text-heading);
+  font-family: var(--font-mono);
+  font-size: 1.25rem;
+}
+
+.broker-table-wrap {
+  margin-top: var(--sp-4);
+}
+
+.broker-table-wrap h3 {
+  margin: 0 0 var(--sp-2) 0;
+}
+
+.broker-table {
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--glass-2);
+}
+
+.broker-tr {
+  display: grid;
+  grid-template-columns: 2fr 1.3fr 1fr 0.8fr 1.1fr;
+  gap: var(--sp-2);
+  align-items: center;
+  padding: 0 var(--sp-3);
+  min-height: 40px;
+  border-bottom: 1px solid var(--glass-border);
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+}
+
+.broker-tr span {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.broker-tr:last-child {
+  border-bottom: none;
+}
+
+.broker-th {
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 0.72rem;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.broker-empty {
+  min-height: 64px;
+  display: grid;
+  place-items: center;
+  color: var(--text-secondary);
+}
+
 /* =============================================================
    BUILDER
    ============================================================= */
@@ -1223,6 +1325,10 @@ input[type='radio'] {
     grid-template-columns: 1fr;
   }
 
+  .broker-ops-grid {
+    grid-template-columns: 1fr;
+  }
+
   .backtest-controls-row {
     grid-template-columns: 1fr;
   }
@@ -1306,7 +1412,8 @@ input[type='radio'] {
   .strategy-grid,
   .templates-grid,
   .reports-grid,
-  .backtest-result-grid {
+  .backtest-result-grid,
+  .broker-stats-grid {
     grid-template-columns: 1fr;
   }
 
@@ -1361,7 +1468,8 @@ input[type='radio'] {
   .search-row,
   .templates-head-row,
   .deployed-head,
-  .backtest-credit-row {
+  .backtest-credit-row,
+  .broker-order-actions {
     flex-direction: column;
     align-items: stretch;
   }
@@ -1370,6 +1478,12 @@ input[type='radio'] {
   .toggles-inline {
     flex-direction: column;
     gap: 10px;
+  }
+
+  .broker-tr {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    padding: var(--sp-2) var(--sp-3);
+    min-height: unset;
   }
 }
 

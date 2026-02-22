@@ -1,19 +1,27 @@
 import asyncio
+import json
+from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisconnect, status
 from pydantic import BaseModel, Field
-from typing import Dict, Any, Optional
+from sqlalchemy.orm import Session
+from typing import Dict, Any, Optional, List
+from uuid import uuid4
 
 from app.services.capital_registry import capital_registry
 from app.services.mtm_engine import mtm_engine
 from app.services.order_cache import shared_order_cache
 from app.services.kite_service import get_kite_service
 from app.services.strategy_registry import strategy_registry
+from app.services.user_strategy_runtime import deploy_user_strategy, undeploy_user_strategy
 from app.services.regime_service import regime_service
 from app.services.governance_guard import governance_guard
 from app.services.event_logger import log_event
+from app.services.websocket_manager import websocket_manager
 from app.state_manager import state_manager, SystemState
 from app.core.time_provider import time_provider
 from app.core.security import require_admin_token, websocket_app_access_allowed
+from app.core.database import get_db
+from app.models.strategy_definition_model import StrategyDefinition
 import random
 
 router = APIRouter(prefix="/dashboard", tags=["Dashboard APIs"])
@@ -72,12 +80,11 @@ async def get_overview():
         
     orders = await shared_order_cache.get_orders(force_refresh=False)
     
-    # Simple win rate calculation based on current session PnL
+    # Session completion ratio as a conservative proxy until trade-level PnL attribution is available.
     win_rate = 0.0
     filled_orders = [o for o in orders if o.get('status') == 'COMPLETE']
-    if filled_orders:
-        win_rate = 100.0 # Placeholder for actual PnL mapping, but non-zero if we have trades
-        # In a real system, we'd map trades to PnL here. For now, non-zero indicates live activity.
+    if orders:
+        win_rate = round((len(filled_orders) / len(orders)) * 100.0, 2)
 
     return {
         "total_capital": capital_registry.total_capital,
@@ -187,7 +194,7 @@ async def get_positions():
             return await kite.get_positions()
         return {"net": [], "day": []}
     except Exception as e:
-        # If API not connected, return mock or error safely
+        # If API is not connected, return a safe empty payload.
         return {"error": str(e), "net": [], "day": []}
 
 @router.get("/holdings")
@@ -199,6 +206,161 @@ async def get_holdings():
         return {"holdings": []}
     except Exception as e:
         return {"error": str(e), "holdings": []}
+
+
+class StrategyStoreRequest(BaseModel):
+    strategy_id: Optional[str] = None
+    name: str = Field(min_length=1, max_length=180)
+    strategy_type: str = Field(default="Time Based", max_length=64)
+    segment_type: str = Field(default="MIS", max_length=32)
+    instrument: str = Field(default="NIFTY 50", max_length=64)
+    start_time: str = Field(default="09:16", max_length=16)
+    end_time: str = Field(default="15:15", max_length=16)
+    weekdays: List[str] = Field(default_factory=list)
+    legs: List[Dict[str, Any]] = Field(default_factory=list)
+    advanced: Dict[str, Any] = Field(default_factory=dict)
+    risk: Dict[str, Any] = Field(default_factory=dict)
+    source: str = Field(default="custom_builder", max_length=32)
+
+
+def _parse_json(text: str, fallback: Any) -> Any:
+    if not text:
+        return fallback
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError:
+        return fallback
+
+
+def _row_to_strategy_payload(row: StrategyDefinition) -> Dict[str, Any]:
+    return {
+        "strategy_id": row.strategy_id,
+        "name": row.name,
+        "strategy_type": row.strategy_type,
+        "segment_type": row.segment_type,
+        "instrument": row.instrument,
+        "start_time": row.start_time,
+        "end_time": row.end_time,
+        "weekdays": _parse_json(row.weekdays_json, []),
+        "legs": _parse_json(row.legs_json, []),
+        "advanced": _parse_json(row.advanced_json, {}),
+        "risk": _parse_json(row.risk_json, {}),
+        "source": row.source,
+        "is_deployed": bool(row.is_deployed),
+        "runtime_symbol": row.runtime_symbol,
+        "runtime_strategy_name": row.runtime_strategy_name,
+        "deployed_at": row.deployed_at.isoformat() if row.deployed_at else None,
+        "created_at": row.created_at.isoformat() if row.created_at else None,
+        "updated_at": row.updated_at.isoformat() if row.updated_at else None,
+    }
+
+
+@router.get("/strategy-store")
+async def get_strategy_store(db: Session = Depends(get_db)):
+    rows = (
+        db.query(StrategyDefinition)
+        .order_by(StrategyDefinition.updated_at.desc(), StrategyDefinition.created_at.desc())
+        .all()
+    )
+    return {"strategies": [_row_to_strategy_payload(row) for row in rows]}
+
+
+@router.post("/strategy-store")
+async def create_or_update_strategy_store(req: StrategyStoreRequest, db: Session = Depends(get_db)):
+    strategy_id = (req.strategy_id or f"strat_{uuid4().hex[:12]}").strip()
+    if not strategy_id:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="strategy_id is invalid.")
+
+    row = db.query(StrategyDefinition).filter(StrategyDefinition.strategy_id == strategy_id).first()
+    is_new = row is None
+    if is_new:
+        row = StrategyDefinition(strategy_id=strategy_id)
+        db.add(row)
+
+    row.name = req.name.strip()
+    row.strategy_type = req.strategy_type.strip() or "Time Based"
+    row.segment_type = req.segment_type.strip() or "MIS"
+    row.instrument = req.instrument.strip() or "NIFTY 50"
+    row.start_time = req.start_time.strip() or "09:16"
+    row.end_time = req.end_time.strip() or "15:15"
+    row.weekdays_json = json.dumps(req.weekdays or [], ensure_ascii=True)
+    row.legs_json = json.dumps(req.legs or [], ensure_ascii=True)
+    row.advanced_json = json.dumps(req.advanced or {}, ensure_ascii=True)
+    row.risk_json = json.dumps(req.risk or {}, ensure_ascii=True)
+    row.source = req.source.strip() or "custom_builder"
+
+    db.commit()
+    db.refresh(row)
+    return {
+        "status": "created" if is_new else "updated",
+        "strategy": _row_to_strategy_payload(row),
+    }
+
+
+@router.post("/strategy-store/{strategy_id}/deploy")
+async def deploy_strategy_store(strategy_id: str, db: Session = Depends(get_db)):
+    row = db.query(StrategyDefinition).filter(StrategyDefinition.strategy_id == strategy_id).first()
+    if not row:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Strategy not found.")
+
+    risk = _parse_json(row.risk_json, {})
+    raw_risk_percent = risk.get("risk_percent") or risk.get("base_risk_percent")
+    symbol, runtime_name = deploy_user_strategy(
+        strategy_id=row.strategy_id,
+        instrument=row.instrument,
+        risk_percent=raw_risk_percent,
+    )
+    row.is_deployed = True
+    row.runtime_symbol = symbol
+    row.runtime_strategy_name = runtime_name
+    row.deployed_at = datetime.now(timezone.utc)
+    db.commit()
+    db.refresh(row)
+
+    # Ensure stream subscription includes this symbol.
+    websocket_manager.subscribe([symbol])
+    if state_manager.get_state() == SystemState.READY and not websocket_manager.is_connected:
+        websocket_manager.start_stream()
+
+    return {
+        "status": "deployed",
+        "strategy": _row_to_strategy_payload(row),
+    }
+
+
+@router.post("/strategy-store/{strategy_id}/undeploy")
+async def undeploy_strategy_store(strategy_id: str, db: Session = Depends(get_db)):
+    row = db.query(StrategyDefinition).filter(StrategyDefinition.strategy_id == strategy_id).first()
+    if not row:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Strategy not found.")
+
+    if row.runtime_symbol is not None and row.runtime_strategy_name:
+        undeploy_user_strategy(row.runtime_symbol, row.runtime_strategy_name)
+
+    row.is_deployed = False
+    row.runtime_symbol = None
+    row.runtime_strategy_name = None
+    row.deployed_at = None
+    db.commit()
+    db.refresh(row)
+    return {
+        "status": "undeployed",
+        "strategy": _row_to_strategy_payload(row),
+    }
+
+
+@router.delete("/strategy-store/{strategy_id}")
+async def delete_strategy_store(strategy_id: str, db: Session = Depends(get_db)):
+    row = db.query(StrategyDefinition).filter(StrategyDefinition.strategy_id == strategy_id).first()
+    if not row:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Strategy not found.")
+
+    if row.runtime_symbol is not None and row.runtime_strategy_name:
+        undeploy_user_strategy(row.runtime_symbol, row.runtime_strategy_name)
+
+    db.delete(row)
+    db.commit()
+    return {"status": "deleted"}
 
 @router.get("/strategies")
 async def get_strategies():

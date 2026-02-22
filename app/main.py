@@ -1,4 +1,5 @@
 import logging
+import json
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
@@ -13,7 +14,9 @@ from app.services.tick_processor import tick_processor
 from app.services.websocket_manager import websocket_manager
 from app.services.strategy_worker import strategy_worker
 from app.services.strategy_registry import strategy_registry
+from app.services.user_strategy_runtime import deploy_user_strategy
 from app.strategies.ema_crossover_strategy import EMACrossoverStrategy
+from app.models.strategy_definition_model import StrategyDefinition
 
 # Initialize sub-systems for early listener binding
 from app.services import kill_switch
@@ -124,6 +127,41 @@ async def lifespan(app: FastAPI):
             strategy=EMACrossoverStrategy(short_period=9, long_period=21, risk_percent=1.0),
         )
     logger.info(f"Auto strategies registered for symbols: {symbols}")
+
+    # Restore user-deployed strategies so autonomous flow survives process restarts.
+    restore_db = None
+    try:
+        restored = 0
+        restored_symbols = set()
+        restore_db = SessionLocal()
+        rows = restore_db.query(StrategyDefinition).filter(StrategyDefinition.is_deployed.is_(True)).all()
+        for row in rows:
+            risk_percent = None
+            try:
+                risk_payload = json.loads(row.risk_json or "{}")
+                risk_percent = risk_payload.get("risk_percent") or risk_payload.get("base_risk_percent")
+            except (TypeError, ValueError):
+                risk_percent = None
+            symbol, runtime_name = deploy_user_strategy(
+                strategy_id=row.strategy_id,
+                instrument=row.instrument,
+                risk_percent=risk_percent,
+            )
+            row.runtime_symbol = symbol
+            row.runtime_strategy_name = runtime_name
+            restored += 1
+            restored_symbols.add(symbol)
+        if rows:
+            restore_db.commit()
+        if restored:
+            symbols = sorted(set(symbols).union(restored_symbols))
+            logger.info(f"Restored {restored} deployed user strategies.")
+    except Exception as restore_err:
+        logger.warning(f"User strategy restore skipped: {restore_err}")
+    finally:
+        if restore_db is not None:
+            restore_db.close()
+
     websocket_manager.subscribe(symbols)
     logger.info(f"Prepared WebSocket subscriptions for symbols: {symbols}")
 
